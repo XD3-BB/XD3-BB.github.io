@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--<meta name="viewport" content="width=device-width, initial-scale=1">--><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Linux Centos Git服务器搭建 | 小_屮、的博客日记</title>
+<meta name="generator" content="Jekyll v4.3.4" />
+<meta property="og:title" content="Linux Centos Git服务器搭建" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="文章来源： https://www.runoob.com/git/git-server.html 1、安装Git[root用户] yum install curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-devel yum install git 创建一个git用户组和用户，用来运行git服务： groupadd git useradd git -g git passwd git //设置密码 2、创建证书登录[root用户] 将我们的公钥导入到/home/git/.ssh/authorized_keys文件里，一行一个。 公钥位于本地的C:\Users\用户名\ .ssh\id_rsa.pub文件 cd /home/git/ mkdir .ssh chmod 755 .ssh touch .ssh/authorized_keys chmod 644 .ssh/authorized_keys chown git:git .ssh/ 3、初始化Git仓库[root用户] 首先我们选定一个目录作为Git仓库，假定是/usr/local/gitRepo/demo.git，在/usr/local/gitRepo目录下输入命令： cd /usr/local mkdir gitRepo chown git:git gitRepo/ cd gitRepo git init --bare demo.git //Initialized empty Git repository in /usr/local/gitRepo/demo.git/ 以上命令Git创建一个空仓库，服务器上的Git仓库通常都以.git结尾。然后，把仓库所属用户改为git： chown -R git:git demo.git 4、克隆仓库[Git用户] git clone git@127.0.0.1:/usr/local/gitRepo/demo.git Cloning into &#39;runoob&#39;... warning: You appear to have cloned an empty repository. Checking connectivity... done. 192.168.45.4 为 Git 所在服务器 ip ，你需要将其修改为你自己的 Git 服务 ip。 这样我们的 Git 服务器安装就完成。 5、整点好玩的 git仓库触发提交[Git用户] 修改云端仓库hooks中的post-receive函数 cd /usr/local/gitRepo/demo.git/hooks vim post-receive #!/bin/sh read local_ref local_sha remote_ref remote_sha DIR=`pwd` DIR=${DIR%.*} branch=${remote_ref##*/} cd ${DIR} unset GIT_DIR echo &quot;${branch}开始拉取，项目文件夹`pwd`&quot; chmod 755 restart-demo.sh ./restart-demo.sh ${branch} chmod 755 post-receive 服务器拉取项目 mkdir /usr/local/gitRepo/demo cd /usr/local/gitRepo/ git init demo cd demo git config --local user.name &quot;xc&quot; git config --local user.email &#39;1960481101@qq.com&#39; ssh-keygen -t rsa 找到生成的文件的公钥/home/git/.ssh/id_rsa.pub，添加到 /home/git/.ssh/authorized_keys,然后克隆项目 cd /usr/local/gitRepo/demo git remote add origin git@127.0.0.1:/usr/local/gitRepo/demo.git git pull 项目中创建脚本 restart-demo.sh 脚本在项目最外侧，方便,mvn位置自己改 #! /bin/bash date updateBranch=master branch=$1 if [ &quot;$branch&quot; ! = &quot;$updateBranch&quot; ]; then echo &quot;分支为${updateBranch}才进行更新&quot; exit 1 fi repoPath=$(pwd) profile=$branch cd $repoPath git reset --hard origin/$branch git checkout -f -b cache origin/$branch git branch -D $branch git checkout -f -b $branch origin/$branch git branch -D cache git pull --no-edit /usr/local/custom/maven/bin/mvn clean package -P$profile cd target file=$(ls *.jar | awk &#39;{print $1}&#39;) sp_pid=$(ps -ef | grep $file | grep -v grep | awk &#39;{print $2}&#39;) if [ -z &quot;$sp_pid&quot; ]; then echo &quot;[ not find sp-tomcat pid ]&quot; else echo &quot;find result: $sp_pid &quot; kill -9 $sp_pid fi logPath=$repoPath/${file%.*}.out nohup java -jar $file &gt;$logPath 2&gt;&amp;1 &amp; echo &quot;--启动ok,日志见$logPath--&quot; 将项目代码文件夹其拥有者设置为git 注意，项目中所有输出路径都需要用户git有操作权限" />
+<meta property="og:description" content="文章来源： https://www.runoob.com/git/git-server.html 1、安装Git[root用户] yum install curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-devel yum install git 创建一个git用户组和用户，用来运行git服务： groupadd git useradd git -g git passwd git //设置密码 2、创建证书登录[root用户] 将我们的公钥导入到/home/git/.ssh/authorized_keys文件里，一行一个。 公钥位于本地的C:\Users\用户名\ .ssh\id_rsa.pub文件 cd /home/git/ mkdir .ssh chmod 755 .ssh touch .ssh/authorized_keys chmod 644 .ssh/authorized_keys chown git:git .ssh/ 3、初始化Git仓库[root用户] 首先我们选定一个目录作为Git仓库，假定是/usr/local/gitRepo/demo.git，在/usr/local/gitRepo目录下输入命令： cd /usr/local mkdir gitRepo chown git:git gitRepo/ cd gitRepo git init --bare demo.git //Initialized empty Git repository in /usr/local/gitRepo/demo.git/ 以上命令Git创建一个空仓库，服务器上的Git仓库通常都以.git结尾。然后，把仓库所属用户改为git： chown -R git:git demo.git 4、克隆仓库[Git用户] git clone git@127.0.0.1:/usr/local/gitRepo/demo.git Cloning into &#39;runoob&#39;... warning: You appear to have cloned an empty repository. Checking connectivity... done. 192.168.45.4 为 Git 所在服务器 ip ，你需要将其修改为你自己的 Git 服务 ip。 这样我们的 Git 服务器安装就完成。 5、整点好玩的 git仓库触发提交[Git用户] 修改云端仓库hooks中的post-receive函数 cd /usr/local/gitRepo/demo.git/hooks vim post-receive #!/bin/sh read local_ref local_sha remote_ref remote_sha DIR=`pwd` DIR=${DIR%.*} branch=${remote_ref##*/} cd ${DIR} unset GIT_DIR echo &quot;${branch}开始拉取，项目文件夹`pwd`&quot; chmod 755 restart-demo.sh ./restart-demo.sh ${branch} chmod 755 post-receive 服务器拉取项目 mkdir /usr/local/gitRepo/demo cd /usr/local/gitRepo/ git init demo cd demo git config --local user.name &quot;xc&quot; git config --local user.email &#39;1960481101@qq.com&#39; ssh-keygen -t rsa 找到生成的文件的公钥/home/git/.ssh/id_rsa.pub，添加到 /home/git/.ssh/authorized_keys,然后克隆项目 cd /usr/local/gitRepo/demo git remote add origin git@127.0.0.1:/usr/local/gitRepo/demo.git git pull 项目中创建脚本 restart-demo.sh 脚本在项目最外侧，方便,mvn位置自己改 #! /bin/bash date updateBranch=master branch=$1 if [ &quot;$branch&quot; ! = &quot;$updateBranch&quot; ]; then echo &quot;分支为${updateBranch}才进行更新&quot; exit 1 fi repoPath=$(pwd) profile=$branch cd $repoPath git reset --hard origin/$branch git checkout -f -b cache origin/$branch git branch -D $branch git checkout -f -b $branch origin/$branch git branch -D cache git pull --no-edit /usr/local/custom/maven/bin/mvn clean package -P$profile cd target file=$(ls *.jar | awk &#39;{print $1}&#39;) sp_pid=$(ps -ef | grep $file | grep -v grep | awk &#39;{print $2}&#39;) if [ -z &quot;$sp_pid&quot; ]; then echo &quot;[ not find sp-tomcat pid ]&quot; else echo &quot;find result: $sp_pid &quot; kill -9 $sp_pid fi logPath=$repoPath/${file%.*}.out nohup java -jar $file &gt;$logPath 2&gt;&amp;1 &amp; echo &quot;--启动ok,日志见$logPath--&quot; 将项目代码文件夹其拥有者设置为git 注意，项目中所有输出路径都需要用户git有操作权限" />
+<link rel="canonical" href="http://localhost:4000/2022/10/14/Linux-CentOS-git%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%90%AD%E5%BB%BA.html" />
+<meta property="og:url" content="http://localhost:4000/2022/10/14/Linux-CentOS-git%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%90%AD%E5%BB%BA.html" />
+<meta property="og:site_name" content="小_屮、的博客日记" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2022-10-14T00:00:00+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Linux Centos Git服务器搭建" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-10-14T00:00:00+08:00","datePublished":"2022-10-14T00:00:00+08:00","description":"文章来源： https://www.runoob.com/git/git-server.html 1、安装Git[root用户] yum install curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-devel yum install git 创建一个git用户组和用户，用来运行git服务： groupadd git useradd git -g git passwd git //设置密码 2、创建证书登录[root用户] 将我们的公钥导入到/home/git/.ssh/authorized_keys文件里，一行一个。 公钥位于本地的C:\\Users\\用户名\\ .ssh\\id_rsa.pub文件 cd /home/git/ mkdir .ssh chmod 755 .ssh touch .ssh/authorized_keys chmod 644 .ssh/authorized_keys chown git:git .ssh/ 3、初始化Git仓库[root用户] 首先我们选定一个目录作为Git仓库，假定是/usr/local/gitRepo/demo.git，在/usr/local/gitRepo目录下输入命令： cd /usr/local mkdir gitRepo chown git:git gitRepo/ cd gitRepo git init --bare demo.git //Initialized empty Git repository in /usr/local/gitRepo/demo.git/ 以上命令Git创建一个空仓库，服务器上的Git仓库通常都以.git结尾。然后，把仓库所属用户改为git： chown -R git:git demo.git 4、克隆仓库[Git用户] git clone git@127.0.0.1:/usr/local/gitRepo/demo.git Cloning into &#39;runoob&#39;... warning: You appear to have cloned an empty repository. Checking connectivity... done. 192.168.45.4 为 Git 所在服务器 ip ，你需要将其修改为你自己的 Git 服务 ip。 这样我们的 Git 服务器安装就完成。 5、整点好玩的 git仓库触发提交[Git用户] 修改云端仓库hooks中的post-receive函数 cd /usr/local/gitRepo/demo.git/hooks vim post-receive #!/bin/sh read local_ref local_sha remote_ref remote_sha DIR=`pwd` DIR=${DIR%.*} branch=${remote_ref##*/} cd ${DIR} unset GIT_DIR echo &quot;${branch}开始拉取，项目文件夹`pwd`&quot; chmod 755 restart-demo.sh ./restart-demo.sh ${branch} chmod 755 post-receive 服务器拉取项目 mkdir /usr/local/gitRepo/demo cd /usr/local/gitRepo/ git init demo cd demo git config --local user.name &quot;xc&quot; git config --local user.email &#39;1960481101@qq.com&#39; ssh-keygen -t rsa 找到生成的文件的公钥/home/git/.ssh/id_rsa.pub，添加到 /home/git/.ssh/authorized_keys,然后克隆项目 cd /usr/local/gitRepo/demo git remote add origin git@127.0.0.1:/usr/local/gitRepo/demo.git git pull 项目中创建脚本 restart-demo.sh 脚本在项目最外侧，方便,mvn位置自己改 #! /bin/bash date updateBranch=master branch=$1 if [ &quot;$branch&quot; ! = &quot;$updateBranch&quot; ]; then echo &quot;分支为${updateBranch}才进行更新&quot; exit 1 fi repoPath=$(pwd) profile=$branch cd $repoPath git reset --hard origin/$branch git checkout -f -b cache origin/$branch git branch -D $branch git checkout -f -b $branch origin/$branch git branch -D cache git pull --no-edit /usr/local/custom/maven/bin/mvn clean package -P$profile cd target file=$(ls *.jar | awk &#39;{print $1}&#39;) sp_pid=$(ps -ef | grep $file | grep -v grep | awk &#39;{print $2}&#39;) if [ -z &quot;$sp_pid&quot; ]; then echo &quot;[ not find sp-tomcat pid ]&quot; else echo &quot;find result: $sp_pid &quot; kill -9 $sp_pid fi logPath=$repoPath/${file%.*}.out nohup java -jar $file &gt;$logPath 2&gt;&amp;1 &amp; echo &quot;--启动ok,日志见$logPath--&quot; 将项目代码文件夹其拥有者设置为git 注意，项目中所有输出路径都需要用户git有操作权限","headline":"Linux Centos Git服务器搭建","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2022/10/14/Linux-CentOS-git%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%90%AD%E5%BB%BA.html"},"url":"http://localhost:4000/2022/10/14/Linux-CentOS-git%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%90%AD%E5%BB%BA.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="小_屮、的博客日记" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">小_屮、的博客日记</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger">
+            <a class="page-link" href="https://jekyllrb.com/" target="_blank">自己整个🤩</a>
+        </div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Linux Centos Git服务器搭建</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2022-10-14T00:00:00+08:00" itemprop="datePublished">2022年10月14日
+      </time>• <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span class="p-author h-card" itemprop="name">小_屮、</span></span></p><span class="tag-type">#运维</span><span class="tag-type">#linux</span><span class="tag-type">#CentOS</span><span class="tag-type">#git</span><span class="tag-type">#git服务器</span><span class="tag-type">#自动部署</span></header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>文章来源： https://www.runoob.com/git/git-server.html</p>
+
+<h2 id="1安装gitroot用户">1、安装Git[root用户]</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>yum install curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-devel
+yum install git
+</code></pre></div></div>
+
+<p>创建一个git用户组和用户，用来运行git服务：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>groupadd git
+useradd git -g git
+passwd git
+//设置密码
+</code></pre></div></div>
+
+<h2 id="2创建证书登录root用户">2、创建证书登录[root用户]</h2>
+
+<p>将我们的公钥导入到/home/git/.ssh/authorized_keys文件里，一行一个。</p>
+
+<p>公钥位于本地的C:\Users\用户名\ .ssh\id_rsa.pub文件</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd /home/git/
+mkdir .ssh
+chmod 755 .ssh
+touch .ssh/authorized_keys
+chmod 644 .ssh/authorized_keys
+chown git:git .ssh/
+</code></pre></div></div>
+
+<h2 id="3初始化git仓库root用户">3、初始化Git仓库[root用户]</h2>
+
+<p>首先我们选定一个目录作为Git仓库，假定是/usr/local/gitRepo/demo.git，在/usr/local/gitRepo目录下输入命令：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd /usr/local
+mkdir gitRepo
+chown git:git gitRepo/
+cd gitRepo
+
+git init --bare demo.git
+
+//Initialized empty Git repository in /usr/local/gitRepo/demo.git/
+</code></pre></div></div>
+
+<p>以上命令Git创建一个空仓库，服务器上的Git仓库通常都以.git结尾。然后，把仓库所属用户改为git：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>chown -R git:git demo.git
+</code></pre></div></div>
+
+<h2 id="4克隆仓库git用户">4、克隆仓库[Git用户]</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone git@127.0.0.1:/usr/local/gitRepo/demo.git
+
+Cloning into 'runoob'...
+warning: You appear to have cloned an empty repository.
+Checking connectivity... done.
+</code></pre></div></div>
+
+<p>192.168.45.4 为 Git 所在服务器 ip ，你需要将其修改为你自己的 Git 服务 ip。</p>
+
+<p>这样我们的 Git 服务器安装就完成。</p>
+
+<h2 id="5整点好玩的--git仓库触发提交git用户">5、整点好玩的  git仓库触发提交[Git用户]</h2>
+
+<p>修改云端仓库hooks中的post-receive函数</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd /usr/local/gitRepo/demo.git/hooks
+vim post-receive
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#!/bin/sh
+read local_ref local_sha remote_ref remote_sha
+DIR=`pwd`
+DIR=${DIR%.*}
+branch=${remote_ref##*/}
+cd ${DIR}
+unset GIT_DIR
+echo "${branch}开始拉取，项目文件夹`pwd`"
+chmod 755 restart-demo.sh
+./restart-demo.sh ${branch}
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>chmod 755 post-receive
+</code></pre></div></div>
+
+<p>服务器拉取项目</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mkdir /usr/local/gitRepo/demo
+cd /usr/local/gitRepo/
+git init demo
+cd demo
+git config --local user.name "xc"
+git config --local user.email '1960481101@qq.com'
+ssh-keygen -t rsa
+</code></pre></div></div>
+
+<p>找到生成的文件的公钥/home/git/.ssh/id_rsa.pub，添加到 /home/git/.ssh/authorized_keys,然后克隆项目</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd /usr/local/gitRepo/demo
+git remote add origin git@127.0.0.1:/usr/local/gitRepo/demo.git
+git pull
+</code></pre></div></div>
+
+<p>项目中创建脚本  restart-demo.sh</p>
+
+<p>脚本在项目最外侧，方便,mvn位置自己改</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#! /bin/bash
+date
+
+updateBranch=master
+
+branch=$1
+if [ "$branch" ! = "$updateBranch" ]; then
+  echo "分支为${updateBranch}才进行更新"
+  exit 1
+fi
+
+repoPath=$(pwd)
+profile=$branch
+cd $repoPath
+git reset --hard origin/$branch
+git checkout -f -b cache origin/$branch
+git branch -D $branch
+git checkout -f -b $branch origin/$branch
+git branch -D cache
+git pull --no-edit
+
+/usr/local/custom/maven/bin/mvn clean package -P$profile
+
+cd target
+file=$(ls *.jar | awk '{print $1}')
+sp_pid=$(ps -ef | grep $file | grep -v grep | awk '{print $2}')
+if [ -z "$sp_pid" ]; then
+  echo "[ not find sp-tomcat pid ]"
+else
+  echo "find result: $sp_pid "
+  kill -9 $sp_pid
+fi
+logPath=$repoPath/${file%.*}.out
+nohup java -jar $file &gt;$logPath 2&gt;&amp;1 &amp;
+echo "--启动ok,日志见$logPath--"
+
+</code></pre></div></div>
+
+<p>将项目代码文件夹其拥有者设置为git</p>
+
+<p>注意，项目中所有输出路径都需要用户git有操作权限</p>
+
+  </div>
+
+  <a class="u-url" href="/2022/10/14/Linux-CentOS-git%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%90%AD%E5%BB%BA.html" hidden></a>
+
+  <div class="previous-next"><div class="previous-post">
+        👈🏻:<a href="/2022/10/12/Linux-CentOS-redis%E5%AE%89%E8%A3%85.html">Linux Centos Redis安装</a>
+      </div><div class="next-post">
+        <a href="/2023/09/06/Linux-CentOS-%E5%A6%82%E4%BD%95%E6%B3%A8%E5%86%8C%E8%87%AA%E5%B7%B1%E7%9A%84%E6%9C%8D%E5%8A%A1.html">Linux Centos 如何注册自己的服务</a>:👉🏻
+      </div></div>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">小_屮、的博客日记</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">Google邮箱,一般不看</li>
+          <li><a class="u-email" href="mailto:xunderlinec1960@gmail.com">xunderlinec1960@gmail.com</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">QQ邮箱，有事发这里</li>
+          <li><a class="u-email" href="mailto:1960481101@qq.com">1960481101@qq.com</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">github基本没在用</li>
+          <li><a href="https://github.com/XD3-BB"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">XD3-BB</span></a></li>
+        </ul>
+      </div>
+    </div>
+
+      <div class="footer-col footer-col-3">
+        <span class="p-name">WordPress收费，Ghost又太大了，2核2G的服务器跑不起来。。还得是jekyll🥰</span>
+      </div>
+  </div>
+
+</footer>
+</body>
+
+</html>

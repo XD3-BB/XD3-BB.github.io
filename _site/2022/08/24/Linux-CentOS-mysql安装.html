@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--<meta name="viewport" content="width=device-width, initial-scale=1">--><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Linux Centos Mysql安装 | 小_屮、的博客日记</title>
+<meta name="generator" content="Jekyll v4.3.4" />
+<meta property="og:title" content="Linux Centos Mysql安装" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="mysql数据库安装操作 一、清理数据 1、首先检查是否安装过mysql rpm -qa grep mysql 若有则清理干净再安装 whereis mysql 找到文件夹目录，再把它删除。 rpm -e –nodeps mysql-xxxx 2、检查你系统是否自带mariadb，输入如下检查。 rpm -qa grep mariadb 如果有则需要把它卸载掉，因为会和Mysql引起冲突，输入如下卸载掉。 rpm -e –nodeps mariadb-libs 二、下载地址或者使用本地安装包 安装目录选择在/usr/local cd /usr/local 1、下载 wget https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.39-linux-glibc2.12-x86_64.tar.gz 2、解压 tar -xzvf mysql-5.7.39-linux-glibc2.12-x86_64.tar.gz 3、修改文件目录 mv mysql-5.7.39-linux-glibc2.12-x86_64 mysql 4、更改mysql目录下所有的目录及文件夹所属组合用户 groupadd mysql useradd -r -g mysql mysql chown -R mysql:mysql mysql/ chmod -R 777 mysql/ 5、编辑配置文件 vi /usr/local/mysql/my.cnf 修改配置文件为如下： [client] #password=88888888 socket=/usr/local/mysql/mysql.sock [mysql] socket=/usr/local/mysql/mysql.sock # 设置mysql客户端默认字符集 default-character-set=utf8 [mysqld] pid-file=/usr/local/mysql/mysql.pid log-error = /usr/local/mysql/log/mysql-error.log #设置3306端口 port = 3306 # 设置mysql的安装目录 basedir=/usr/local/mysql # 设置mysql数据库的数据的存放目录 datadir=/usr/local/mysql/data #sock socket=/usr/local/mysql/mysql.sock # 允许最大连接数 max_connections=200 # 服务端使用的字符集默认为8比特编码的latin1字符集 character-set-server=utf8mb4 # 创建新表时将使用的默认存储引擎 default-storage-engine=INNODB #允许时间类型的数据为零(去掉NO_ZERO_IN_DATE,NO_ZERO_DATE) sql_mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION #ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION lower_case_table_names=1 6、编译安装 创建data文件夹 mkdir /usr/local/mysql/data 执行安装，账号默认root（需要注意最后行显示的是root的密码） /usr/local/mysql/bin/mysqld –initialize –user=mysql –datadir=/usr/local/mysql/data –basedir=/usr/local/mysql 添加文件夹 mkdir /usr/local/mysql/log touch /usr/local/mysql/log/mysql-error.log chmod -R 777 /usr/local/mysql/log 7、服务及mysql命令软链接 ln -s /usr/local/mysql/bin/mysql /usr/bin ln -s /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql 8、启动服务并登入更改root密码 service mysql start ln -s /usr/local/mysql/mysql.sock /tmp/mysql.sock mysql -u root -p 刚刚编译生成的默认密码 set password for root@localhost = password(‘新密码’); flush privileges; 9、设置远程登入： use mysql; update user set host=’%’ where host=’localhost’; flush privileges; 三、主从互备 1、修改配置文件 主库配置文件 vim /etc/my.cnf [mysqld] server_id=1 log-bin=mysql-bin log-bin-index=master-bin.index relay-log=relay-log relay-log-index=relay-log.index 从库配置文件 vim /etc/my.cnf [mysqld] server_id=2 log-bin=mysql-bin log-bin-index=master-bin.index relay-log=relay-log relay-log-index=relay-log.index 上面修改配置文件需重启服务 service mysql restart 2、登录主库设置授权从库 [root@servername fold]# mysql -u root -p Enter password:（密码输入不可见） mysql&gt; grant replication slave on . to ‘root’@’从库的ip地址’ identified by ‘从库主库连接密码’; mysql&gt;flush privileges; 查看master的状态 mysql&gt;show master status; 主库进行锁表 mysql&gt;flush tables with read lock; 3、从库配置操作 [root@servername fold]# mysql -u root -p Enter password:（密码输入不可见） mysql&gt; change master to master_host=’主库ip地址‘,master_user=’root’, master_password=’从库主库连接密码‘,master_log_file=’主库File‘,master_log_pos=（主库position）; mysql&gt;start slave; 查看连接状态 mysql&gt;show slave status\G; Slave_IO_State: Waiting for master to send event Master_Host: 119.3.131.252 Master_User: root Master_Port: 3306 Connect_Retry: 60 Master_Log_File: mysql-bin.000007 Read_Master_Log_Pos: 154 Relay_Log_File: relay-log.000002 Relay_Log_Pos: 320 Relay_Master_Log_File: mysql-bin.000007 Slave_IO_Running: Yes #此处两个地方 Slave_SQL_Running: Yes #全部为Yes即成功 Replicate_Do_DB: Replicate_Ignore_DB: Replicate_Do_Table: Replicate_Ignore_Table: Replicate_Wild_Do_Table: Replicate_Wild_Ignore_Table: Last_Errno: 0 Last_Error: Skip_Counter: 0 Exec_Master_Log_Pos: 154 Relay_Log_Space: 521 Until_Condition: None Until_Log_File: Until_Log_Pos: 0 Master_SSL_Allowed: No Master_SSL_CA_File: Master_SSL_CA_Path: Master_SSL_Cert: Master_SSL_Cipher: Master_SSL_Key: Seconds_Behind_Master: 0 Master_SSL_Verify_Server_Cert: No Last_IO_Errno: 0 Last_IO_Error: Last_SQL_Errno: 0 Last_SQL_Error: Replicate_Ignore_Server_Ids: Master_Server_Id: 2 Master_UUID: 8823ac3e-0983-11ed-97a9-fa163e59f44f Master_Info_File: /usr/local/mysql/data/master.info SQL_Delay: 0 SQL_Remaining_Delay: NULL Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates Master_Retry_Count: 86400 Master_Bind: Last_IO_Error_Timestamp: Last_SQL_Error_Timestamp: Master_SSL_Crl: Master_SSL_Crlpath: Retrieved_Gtid_Set: Executed_Gtid_Set: Auto_Position: 0 Replicate_Rewrite_DB: Channel_Name: Master_TLS_Version: 1 row in set (0.00 sec) ERROR: No query specified 4、解锁主库（别漏了） mysql&gt; unlock tables; 四、主主互备 主主互备、即将主从互备反过来，重新执行一遍流程即可" />
+<meta property="og:description" content="mysql数据库安装操作 一、清理数据 1、首先检查是否安装过mysql rpm -qa grep mysql 若有则清理干净再安装 whereis mysql 找到文件夹目录，再把它删除。 rpm -e –nodeps mysql-xxxx 2、检查你系统是否自带mariadb，输入如下检查。 rpm -qa grep mariadb 如果有则需要把它卸载掉，因为会和Mysql引起冲突，输入如下卸载掉。 rpm -e –nodeps mariadb-libs 二、下载地址或者使用本地安装包 安装目录选择在/usr/local cd /usr/local 1、下载 wget https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.39-linux-glibc2.12-x86_64.tar.gz 2、解压 tar -xzvf mysql-5.7.39-linux-glibc2.12-x86_64.tar.gz 3、修改文件目录 mv mysql-5.7.39-linux-glibc2.12-x86_64 mysql 4、更改mysql目录下所有的目录及文件夹所属组合用户 groupadd mysql useradd -r -g mysql mysql chown -R mysql:mysql mysql/ chmod -R 777 mysql/ 5、编辑配置文件 vi /usr/local/mysql/my.cnf 修改配置文件为如下： [client] #password=88888888 socket=/usr/local/mysql/mysql.sock [mysql] socket=/usr/local/mysql/mysql.sock # 设置mysql客户端默认字符集 default-character-set=utf8 [mysqld] pid-file=/usr/local/mysql/mysql.pid log-error = /usr/local/mysql/log/mysql-error.log #设置3306端口 port = 3306 # 设置mysql的安装目录 basedir=/usr/local/mysql # 设置mysql数据库的数据的存放目录 datadir=/usr/local/mysql/data #sock socket=/usr/local/mysql/mysql.sock # 允许最大连接数 max_connections=200 # 服务端使用的字符集默认为8比特编码的latin1字符集 character-set-server=utf8mb4 # 创建新表时将使用的默认存储引擎 default-storage-engine=INNODB #允许时间类型的数据为零(去掉NO_ZERO_IN_DATE,NO_ZERO_DATE) sql_mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION #ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION lower_case_table_names=1 6、编译安装 创建data文件夹 mkdir /usr/local/mysql/data 执行安装，账号默认root（需要注意最后行显示的是root的密码） /usr/local/mysql/bin/mysqld –initialize –user=mysql –datadir=/usr/local/mysql/data –basedir=/usr/local/mysql 添加文件夹 mkdir /usr/local/mysql/log touch /usr/local/mysql/log/mysql-error.log chmod -R 777 /usr/local/mysql/log 7、服务及mysql命令软链接 ln -s /usr/local/mysql/bin/mysql /usr/bin ln -s /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql 8、启动服务并登入更改root密码 service mysql start ln -s /usr/local/mysql/mysql.sock /tmp/mysql.sock mysql -u root -p 刚刚编译生成的默认密码 set password for root@localhost = password(‘新密码’); flush privileges; 9、设置远程登入： use mysql; update user set host=’%’ where host=’localhost’; flush privileges; 三、主从互备 1、修改配置文件 主库配置文件 vim /etc/my.cnf [mysqld] server_id=1 log-bin=mysql-bin log-bin-index=master-bin.index relay-log=relay-log relay-log-index=relay-log.index 从库配置文件 vim /etc/my.cnf [mysqld] server_id=2 log-bin=mysql-bin log-bin-index=master-bin.index relay-log=relay-log relay-log-index=relay-log.index 上面修改配置文件需重启服务 service mysql restart 2、登录主库设置授权从库 [root@servername fold]# mysql -u root -p Enter password:（密码输入不可见） mysql&gt; grant replication slave on . to ‘root’@’从库的ip地址’ identified by ‘从库主库连接密码’; mysql&gt;flush privileges; 查看master的状态 mysql&gt;show master status; 主库进行锁表 mysql&gt;flush tables with read lock; 3、从库配置操作 [root@servername fold]# mysql -u root -p Enter password:（密码输入不可见） mysql&gt; change master to master_host=’主库ip地址‘,master_user=’root’, master_password=’从库主库连接密码‘,master_log_file=’主库File‘,master_log_pos=（主库position）; mysql&gt;start slave; 查看连接状态 mysql&gt;show slave status\G; Slave_IO_State: Waiting for master to send event Master_Host: 119.3.131.252 Master_User: root Master_Port: 3306 Connect_Retry: 60 Master_Log_File: mysql-bin.000007 Read_Master_Log_Pos: 154 Relay_Log_File: relay-log.000002 Relay_Log_Pos: 320 Relay_Master_Log_File: mysql-bin.000007 Slave_IO_Running: Yes #此处两个地方 Slave_SQL_Running: Yes #全部为Yes即成功 Replicate_Do_DB: Replicate_Ignore_DB: Replicate_Do_Table: Replicate_Ignore_Table: Replicate_Wild_Do_Table: Replicate_Wild_Ignore_Table: Last_Errno: 0 Last_Error: Skip_Counter: 0 Exec_Master_Log_Pos: 154 Relay_Log_Space: 521 Until_Condition: None Until_Log_File: Until_Log_Pos: 0 Master_SSL_Allowed: No Master_SSL_CA_File: Master_SSL_CA_Path: Master_SSL_Cert: Master_SSL_Cipher: Master_SSL_Key: Seconds_Behind_Master: 0 Master_SSL_Verify_Server_Cert: No Last_IO_Errno: 0 Last_IO_Error: Last_SQL_Errno: 0 Last_SQL_Error: Replicate_Ignore_Server_Ids: Master_Server_Id: 2 Master_UUID: 8823ac3e-0983-11ed-97a9-fa163e59f44f Master_Info_File: /usr/local/mysql/data/master.info SQL_Delay: 0 SQL_Remaining_Delay: NULL Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates Master_Retry_Count: 86400 Master_Bind: Last_IO_Error_Timestamp: Last_SQL_Error_Timestamp: Master_SSL_Crl: Master_SSL_Crlpath: Retrieved_Gtid_Set: Executed_Gtid_Set: Auto_Position: 0 Replicate_Rewrite_DB: Channel_Name: Master_TLS_Version: 1 row in set (0.00 sec) ERROR: No query specified 4、解锁主库（别漏了） mysql&gt; unlock tables; 四、主主互备 主主互备、即将主从互备反过来，重新执行一遍流程即可" />
+<link rel="canonical" href="http://localhost:4000/2022/08/24/Linux-CentOS-mysql%E5%AE%89%E8%A3%85.html" />
+<meta property="og:url" content="http://localhost:4000/2022/08/24/Linux-CentOS-mysql%E5%AE%89%E8%A3%85.html" />
+<meta property="og:site_name" content="小_屮、的博客日记" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2022-08-24T00:00:00+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Linux Centos Mysql安装" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-08-24T00:00:00+08:00","datePublished":"2022-08-24T00:00:00+08:00","description":"mysql数据库安装操作 一、清理数据 1、首先检查是否安装过mysql rpm -qa grep mysql 若有则清理干净再安装 whereis mysql 找到文件夹目录，再把它删除。 rpm -e –nodeps mysql-xxxx 2、检查你系统是否自带mariadb，输入如下检查。 rpm -qa grep mariadb 如果有则需要把它卸载掉，因为会和Mysql引起冲突，输入如下卸载掉。 rpm -e –nodeps mariadb-libs 二、下载地址或者使用本地安装包 安装目录选择在/usr/local cd /usr/local 1、下载 wget https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.39-linux-glibc2.12-x86_64.tar.gz 2、解压 tar -xzvf mysql-5.7.39-linux-glibc2.12-x86_64.tar.gz 3、修改文件目录 mv mysql-5.7.39-linux-glibc2.12-x86_64 mysql 4、更改mysql目录下所有的目录及文件夹所属组合用户 groupadd mysql useradd -r -g mysql mysql chown -R mysql:mysql mysql/ chmod -R 777 mysql/ 5、编辑配置文件 vi /usr/local/mysql/my.cnf 修改配置文件为如下： [client] #password=88888888 socket=/usr/local/mysql/mysql.sock [mysql] socket=/usr/local/mysql/mysql.sock # 设置mysql客户端默认字符集 default-character-set=utf8 [mysqld] pid-file=/usr/local/mysql/mysql.pid log-error = /usr/local/mysql/log/mysql-error.log #设置3306端口 port = 3306 # 设置mysql的安装目录 basedir=/usr/local/mysql # 设置mysql数据库的数据的存放目录 datadir=/usr/local/mysql/data #sock socket=/usr/local/mysql/mysql.sock # 允许最大连接数 max_connections=200 # 服务端使用的字符集默认为8比特编码的latin1字符集 character-set-server=utf8mb4 # 创建新表时将使用的默认存储引擎 default-storage-engine=INNODB #允许时间类型的数据为零(去掉NO_ZERO_IN_DATE,NO_ZERO_DATE) sql_mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION #ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION lower_case_table_names=1 6、编译安装 创建data文件夹 mkdir /usr/local/mysql/data 执行安装，账号默认root（需要注意最后行显示的是root的密码） /usr/local/mysql/bin/mysqld –initialize –user=mysql –datadir=/usr/local/mysql/data –basedir=/usr/local/mysql 添加文件夹 mkdir /usr/local/mysql/log touch /usr/local/mysql/log/mysql-error.log chmod -R 777 /usr/local/mysql/log 7、服务及mysql命令软链接 ln -s /usr/local/mysql/bin/mysql /usr/bin ln -s /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql 8、启动服务并登入更改root密码 service mysql start ln -s /usr/local/mysql/mysql.sock /tmp/mysql.sock mysql -u root -p 刚刚编译生成的默认密码 set password for root@localhost = password(‘新密码’); flush privileges; 9、设置远程登入： use mysql; update user set host=’%’ where host=’localhost’; flush privileges; 三、主从互备 1、修改配置文件 主库配置文件 vim /etc/my.cnf [mysqld] server_id=1 log-bin=mysql-bin log-bin-index=master-bin.index relay-log=relay-log relay-log-index=relay-log.index 从库配置文件 vim /etc/my.cnf [mysqld] server_id=2 log-bin=mysql-bin log-bin-index=master-bin.index relay-log=relay-log relay-log-index=relay-log.index 上面修改配置文件需重启服务 service mysql restart 2、登录主库设置授权从库 [root@servername fold]# mysql -u root -p Enter password:（密码输入不可见） mysql&gt; grant replication slave on . to ‘root’@’从库的ip地址’ identified by ‘从库主库连接密码’; mysql&gt;flush privileges; 查看master的状态 mysql&gt;show master status; 主库进行锁表 mysql&gt;flush tables with read lock; 3、从库配置操作 [root@servername fold]# mysql -u root -p Enter password:（密码输入不可见） mysql&gt; change master to master_host=’主库ip地址‘,master_user=’root’, master_password=’从库主库连接密码‘,master_log_file=’主库File‘,master_log_pos=（主库position）; mysql&gt;start slave; 查看连接状态 mysql&gt;show slave status\\G; Slave_IO_State: Waiting for master to send event Master_Host: 119.3.131.252 Master_User: root Master_Port: 3306 Connect_Retry: 60 Master_Log_File: mysql-bin.000007 Read_Master_Log_Pos: 154 Relay_Log_File: relay-log.000002 Relay_Log_Pos: 320 Relay_Master_Log_File: mysql-bin.000007 Slave_IO_Running: Yes #此处两个地方 Slave_SQL_Running: Yes #全部为Yes即成功 Replicate_Do_DB: Replicate_Ignore_DB: Replicate_Do_Table: Replicate_Ignore_Table: Replicate_Wild_Do_Table: Replicate_Wild_Ignore_Table: Last_Errno: 0 Last_Error: Skip_Counter: 0 Exec_Master_Log_Pos: 154 Relay_Log_Space: 521 Until_Condition: None Until_Log_File: Until_Log_Pos: 0 Master_SSL_Allowed: No Master_SSL_CA_File: Master_SSL_CA_Path: Master_SSL_Cert: Master_SSL_Cipher: Master_SSL_Key: Seconds_Behind_Master: 0 Master_SSL_Verify_Server_Cert: No Last_IO_Errno: 0 Last_IO_Error: Last_SQL_Errno: 0 Last_SQL_Error: Replicate_Ignore_Server_Ids: Master_Server_Id: 2 Master_UUID: 8823ac3e-0983-11ed-97a9-fa163e59f44f Master_Info_File: /usr/local/mysql/data/master.info SQL_Delay: 0 SQL_Remaining_Delay: NULL Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates Master_Retry_Count: 86400 Master_Bind: Last_IO_Error_Timestamp: Last_SQL_Error_Timestamp: Master_SSL_Crl: Master_SSL_Crlpath: Retrieved_Gtid_Set: Executed_Gtid_Set: Auto_Position: 0 Replicate_Rewrite_DB: Channel_Name: Master_TLS_Version: 1 row in set (0.00 sec) ERROR: No query specified 4、解锁主库（别漏了） mysql&gt; unlock tables; 四、主主互备 主主互备、即将主从互备反过来，重新执行一遍流程即可","headline":"Linux Centos Mysql安装","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2022/08/24/Linux-CentOS-mysql%E5%AE%89%E8%A3%85.html"},"url":"http://localhost:4000/2022/08/24/Linux-CentOS-mysql%E5%AE%89%E8%A3%85.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="小_屮、的博客日记" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">小_屮、的博客日记</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger">
+            <a class="page-link" href="https://jekyllrb.com/" target="_blank">自己整个🤩</a>
+        </div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Linux Centos Mysql安装</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2022-08-24T00:00:00+08:00" itemprop="datePublished">2022年08月24日
+      </time>• <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span class="p-author h-card" itemprop="name">小_屮、</span></span></p><span class="tag-type">#运维</span><span class="tag-type">#linux</span><span class="tag-type">#CentOS</span><span class="tag-type">#mysql</span><span class="tag-type">#mysql5.7</span><span class="tag-type">#主主互备</span><span class="tag-type">#主从备份</span></header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>mysql数据库安装操作</p>
+
+<h2 id="一清理数据">一、清理数据</h2>
+
+<h3 id="1首先检查是否安装过mysql">1、首先检查是否安装过mysql</h3>
+
+<table>
+  <tbody>
+    <tr>
+      <td>rpm -qa</td>
+      <td>grep mysql</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>若有则清理干净再安装</p>
+
+<p>whereis mysql</p>
+
+<p>找到文件夹目录，再把它删除。</p>
+
+<p>rpm -e –nodeps mysql-xxxx</p>
+
+<h3 id="2检查你系统是否自带mariadb输入如下检查">2、检查你系统是否自带mariadb，输入如下检查。</h3>
+
+<table>
+  <tbody>
+    <tr>
+      <td>rpm -qa</td>
+      <td>grep mariadb</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>如果有则需要把它卸载掉，因为会和Mysql引起冲突，输入如下卸载掉。</p>
+
+<p>rpm -e –nodeps mariadb-libs</p>
+
+<h2 id="二下载地址或者使用本地安装包">二、下载地址或者使用本地安装包</h2>
+
+<p>安装目录选择在/usr/local</p>
+
+<p>cd /usr/local</p>
+
+<h3 id="1下载">1、下载</h3>
+
+<p>wget https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.39-linux-glibc2.12-x86_64.tar.gz</p>
+
+<h3 id="2解压">2、解压</h3>
+
+<p>tar -xzvf mysql-5.7.39-linux-glibc2.12-x86_64.tar.gz</p>
+
+<h3 id="3修改文件目录">3、修改文件目录</h3>
+
+<p>mv mysql-5.7.39-linux-glibc2.12-x86_64 mysql</p>
+
+<h3 id="4更改mysql目录下所有的目录及文件夹所属组合用户">4、更改mysql目录下所有的目录及文件夹所属组合用户</h3>
+
+<p>groupadd mysql</p>
+
+<p>useradd -r -g mysql mysql</p>
+
+<p>chown -R mysql:mysql mysql/</p>
+
+<p>chmod -R 777 mysql/</p>
+
+<h3 id="5编辑配置文件">5、编辑配置文件</h3>
+
+<p>vi /usr/local/mysql/my.cnf</p>
+
+<p>修改配置文件为如下：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[client]
+#password=88888888
+socket=/usr/local/mysql/mysql.sock
+
+[mysql]
+socket=/usr/local/mysql/mysql.sock
+# 设置mysql客户端默认字符集
+default-character-set=utf8
+
+[mysqld]
+pid-file=/usr/local/mysql/mysql.pid
+log-error = /usr/local/mysql/log/mysql-error.log
+#设置3306端口
+port = 3306
+# 设置mysql的安装目录
+basedir=/usr/local/mysql
+# 设置mysql数据库的数据的存放目录
+datadir=/usr/local/mysql/data
+#sock
+socket=/usr/local/mysql/mysql.sock
+# 允许最大连接数
+max_connections=200
+# 服务端使用的字符集默认为8比特编码的latin1字符集
+character-set-server=utf8mb4
+# 创建新表时将使用的默认存储引擎
+default-storage-engine=INNODB
+#允许时间类型的数据为零(去掉NO_ZERO_IN_DATE,NO_ZERO_DATE)
+sql_mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+#ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+lower_case_table_names=1
+</code></pre></div></div>
+
+<h3 id="6编译安装">6、编译安装</h3>
+
+<p>创建data文件夹</p>
+
+<p>mkdir /usr/local/mysql/data</p>
+
+<p>执行安装，账号默认root<strong>（需要注意最后行显示的是root的密码）</strong></p>
+
+<p>/usr/local/mysql/bin/mysqld –initialize –user=mysql –datadir=/usr/local/mysql/data –basedir=/usr/local/mysql</p>
+
+<p>添加文件夹</p>
+
+<p>mkdir /usr/local/mysql/log</p>
+
+<p>touch /usr/local/mysql/log/mysql-error.log</p>
+
+<p>chmod -R 777 /usr/local/mysql/log</p>
+
+<h3 id="7服务及mysql命令软链接">7、服务及mysql命令软链接</h3>
+
+<p>ln -s /usr/local/mysql/bin/mysql /usr/bin</p>
+
+<p>ln -s /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql</p>
+
+<h3 id="8启动服务并登入更改root密码">8、启动服务并登入更改root密码</h3>
+
+<p>service mysql start</p>
+
+<p>ln -s /usr/local/mysql/mysql.sock /tmp/mysql.sock</p>
+
+<p>mysql -u root -p <strong>刚刚编译生成的默认密码</strong></p>
+
+<p>set password for root@localhost = password(‘<strong>新密码</strong>’);</p>
+
+<p>flush privileges;</p>
+
+<h3 id="9设置远程登入">9、设置远程登入：</h3>
+
+<p>use mysql;</p>
+
+<p>update user set host=’%’ where host=’localhost’;</p>
+
+<p>flush privileges;</p>
+
+<h2 id="三主从互备">三、主从互备</h2>
+
+<h3 id="1修改配置文件">1、修改配置文件</h3>
+
+<p>主库配置文件</p>
+
+<p>vim /etc/my.cnf</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[mysqld]
+server_id=1
+log-bin=mysql-bin
+log-bin-index=master-bin.index
+relay-log=relay-log
+relay-log-index=relay-log.index
+</code></pre></div></div>
+
+<p>从库配置文件</p>
+
+<p>vim /etc/my.cnf</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[mysqld]
+server_id=2
+log-bin=mysql-bin
+log-bin-index=master-bin.index
+relay-log=relay-log
+relay-log-index=relay-log.index
+</code></pre></div></div>
+
+<p>上面修改配置文件需重启服务</p>
+
+<p>service mysql restart</p>
+
+<h3 id="2登录主库设置授权从库">2、登录主库设置授权从库</h3>
+
+<p>[root@servername fold]# mysql -u root -p</p>
+
+<p>Enter password:（<strong>密码输入不可见</strong>）</p>
+
+<p>mysql&gt; grant replication slave on <em>.</em> to ‘root’@’<strong>从库的ip地址</strong>’ identified by ‘<strong>从库主库连接密码</strong>’;</p>
+
+<p>mysql&gt;flush privileges;</p>
+
+<p>查看master的状态</p>
+
+<p>mysql&gt;show master status;</p>
+
+<p><img src="C:\Users\19604\AppData\Roaming\Typora\typora-user-images\image-20220824221121472.png" alt="image-20220824221121472" /></p>
+
+<p>主库进行锁表</p>
+
+<p>mysql&gt;flush tables with read lock;</p>
+
+<h3 id="3从库配置操作">3、从库配置操作</h3>
+
+<p>[root@servername fold]# mysql -u root -p</p>
+
+<p>Enter password:（<strong>密码输入不可见</strong>）</p>
+
+<p>mysql&gt; change master to master_host=’<strong>主库ip地址</strong>‘,master_user=’root’, master_password=’<strong>从库主库连接密码</strong>‘,master_log_file=’<strong>主库File</strong>‘,master_log_pos=（<strong>主库position</strong>）;</p>
+
+<p>mysql&gt;start slave;</p>
+
+<p>查看连接状态</p>
+
+<p>mysql&gt;show slave status\G;</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                Slave_IO_State: Waiting for master to send event
+                   Master_Host: 119.3.131.252
+                   Master_User: root
+                   Master_Port: 3306
+                 Connect_Retry: 60
+               Master_Log_File: mysql-bin.000007
+           Read_Master_Log_Pos: 154
+                Relay_Log_File: relay-log.000002
+                 Relay_Log_Pos: 320
+         Relay_Master_Log_File: mysql-bin.000007
+              Slave_IO_Running: Yes				#此处两个地方
+             Slave_SQL_Running: Yes				#全部为Yes即成功
+               Replicate_Do_DB: 
+           Replicate_Ignore_DB: 
+            Replicate_Do_Table: 
+        Replicate_Ignore_Table: 
+       Replicate_Wild_Do_Table: 
+   Replicate_Wild_Ignore_Table: 
+          			Last_Errno: 0
+          			Last_Error: 
+         		  Skip_Counter: 0
+     	   Exec_Master_Log_Pos: 154
+      		   Relay_Log_Space: 521
+       		   Until_Condition: None
+        		Until_Log_File: 
+        		 Until_Log_Pos: 0
+            Master_SSL_Allowed: No
+            Master_SSL_CA_File: 
+            Master_SSL_CA_Path: 
+    	  	   Master_SSL_Cert: 
+     		 Master_SSL_Cipher: 
+        		Master_SSL_Key: 
+    	 Seconds_Behind_Master: 0
+ Master_SSL_Verify_Server_Cert: No
+                 Last_IO_Errno: 0
+                 Last_IO_Error: 
+                Last_SQL_Errno: 0
+                Last_SQL_Error: 
+   Replicate_Ignore_Server_Ids: 
+       		  Master_Server_Id: 2
+         		   Master_UUID: 8823ac3e-0983-11ed-97a9-fa163e59f44f
+       		  Master_Info_File: /usr/local/mysql/data/master.info
+              		 SQL_Delay: 0
+           SQL_Remaining_Delay: NULL
+       Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates
+          	Master_Retry_Count: 86400
+        		   Master_Bind: 
+       Last_IO_Error_Timestamp: 
+      Last_SQL_Error_Timestamp: 
+                Master_SSL_Crl: 
+            Master_SSL_Crlpath: 
+            Retrieved_Gtid_Set: 
+             Executed_Gtid_Set: 
+                 Auto_Position: 0
+          Replicate_Rewrite_DB: 
+                  Channel_Name: 
+            Master_TLS_Version: 
+1 row in set (0.00 sec)
+
+ERROR: 
+No query specified
+</code></pre></div></div>
+
+<h3 id="4解锁主库别漏了">4、解锁主库（别漏了）</h3>
+
+<p>mysql&gt; unlock tables;</p>
+
+<h2 id="四主主互备">四、主主互备</h2>
+
+<p>主主互备、即将主从互备反过来，重新执行一遍流程即可</p>
+
+  </div>
+
+  <a class="u-url" href="/2022/08/24/Linux-CentOS-mysql%E5%AE%89%E8%A3%85.html" hidden></a>
+
+  <div class="previous-next"><div class="previous-post">
+        👈🏻:<a href="/2022/08/24/Linux-CentOS-maven%E5%AE%89%E8%A3%85.html">Linux Centos Maven安装</a>
+      </div><div class="next-post">
+        <a href="/2022/08/24/Linux-CentOS-nacos%E5%AE%89%E8%A3%85.html">Linux Centos Nacos安装</a>:👉🏻
+      </div></div>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">小_屮、的博客日记</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">Google邮箱,一般不看</li>
+          <li><a class="u-email" href="mailto:xunderlinec1960@gmail.com">xunderlinec1960@gmail.com</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">QQ邮箱，有事发这里</li>
+          <li><a class="u-email" href="mailto:1960481101@qq.com">1960481101@qq.com</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">github基本没在用</li>
+          <li><a href="https://github.com/XD3-BB"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">XD3-BB</span></a></li>
+        </ul>
+      </div>
+    </div>
+
+      <div class="footer-col footer-col-3">
+        <span class="p-name">WordPress收费，Ghost又太大了，2核2G的服务器跑不起来。。还得是jekyll🥰</span>
+      </div>
+  </div>
+
+</footer>
+</body>
+
+</html>

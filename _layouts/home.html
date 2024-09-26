@@ -1,0 +1,109 @@
+---
+layout: default-cus
+---
+
+<div class="home">
+  {%- if page.title -%}
+    <h1 class="page-heading">{{ page.title }}</h1>
+  {%- endif -%}
+
+  {{ content }}
+
+  {%- if site.posts.size > 0 -%}
+    <h2 class="post-list-heading">这不tm公开日记🕺</h2>
+
+    {%- assign grouped_posts = site.posts | group_by_exp:"post", "post.date | date: '%Y-%m'" -%}
+    <ul class="month-list">
+      {%- for group in grouped_posts -%}
+        <li>
+          <div class="group-by-month">
+          <h3><a class="month-link" href="#{{ group.name }}">{{ group.name | date: "%B %Y" }}</a></h3>
+	        {%- assign all_tags = "" -%}
+	        {%- for post in group.items -%}
+	          {%- assign tags = post.tags | join: ',' -%}
+	          {%- assign all_tags = all_tags | append: tags | append: ',' -%}
+	        {%- endfor -%}
+	
+	        {%- assign unique_tags = all_tags | split: ',' | uniq -%}
+	
+	        {%- for unique_tag in unique_tags -%}
+	          {%- if unique_tag != "" -%}
+	            <span class="tag-type tag-for-select" data-tag="{{ group.name }}--link--{{ unique_tag }}">#{{ unique_tag }}</span>
+	          {%- endif -%}
+	        {%- endfor -%}          
+            
+          </div>
+          <ul class="post-list" id="{{ group.name }}" style="display:none;">
+            {%- for post in group.items -%}
+              <li>
+                {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
+
+			  {%- assign tags_with_links = "" -%}
+			  {%- if post.tags.size > 0 -%}
+			    {%- for tag in post.tags -%}
+			      {%- assign tags_with_links = tags_with_links | append: group.name | append: "--link--" | append: tag | append: " " -%}
+			    {%- endfor -%}
+			  {%- endif -%}
+		
+                <div class="post-selector-box" data-tag="{{ tags_with_links }}">
+                  <span class="post-meta">{{ post.date | date: date_format }}</span>
+                  <h4>
+                    <a class="post-link" href="{{ post.url | relative_url }}">
+                      {{ post.title | escape }}
+                    </a>
+                  </h4>
+                </div>
+                {%- if site.show_excerpts -%}
+                  {{ post.excerpt }}
+                {%- endif -%}
+              </li>
+            {%- endfor -%}
+          </ul>
+        </li>
+      {%- endfor -%}
+    </ul>
+
+    <p class="rss-subscribe">没有更多了...</p>
+  {%- endif -%}
+
+</div>
+
+<script>
+  document.querySelectorAll('.month-link').forEach(link => {
+    link.addEventListener('click', function(event) {
+      event.preventDefault();
+      const posts = document.getElementById(this.getAttribute('href').substring(1));
+      if (posts.style.display === 'none') {
+        posts.style.display = 'block';
+      } else {
+        posts.style.display = 'none';
+      }
+    });
+  });
+
+  
+  document.querySelectorAll('.tag-for-select').forEach(link => {
+    link.addEventListener('click', function(event) {
+      event.preventDefault();
+	 link.classList.toggle('tag-type-active');
+	 
+	 if(link.classList.contains('tag-type-active')) {
+	 	show_article(link.getAttribute('data-tag'));
+	 }else {
+	 	hide_article(link.getAttribute('data-tag'));
+	 }
+  	});
+   });
+
+  function show_article(e) {
+  	let tags = e.split('--link--');
+  	document.querySelectorAll('.post-selector-box').forEach(link => {
+		let has_tags = link.getAttribute('data-tag').split(' ');
+		
+  	});
+  }
+  
+  function hide_article(e) {
+  }
+  
+</script>

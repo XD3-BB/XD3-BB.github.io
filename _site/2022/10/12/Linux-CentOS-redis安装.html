@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--<meta name="viewport" content="width=device-width, initial-scale=1">--><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Linux Centos Redis安装 | 小_屮、的博客日记</title>
+<meta name="generator" content="Jekyll v4.3.4" />
+<meta property="og:title" content="Linux Centos Redis安装" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="redis是个好东西啊，编译安装需要gcc yum -y install gcc 一、单机redis安装 1、下载 wget https://download.redis.io/releases/redis-6.2.7.tar.gz 2、解压 tar xzf redis-6.2.7.tar.gz 3、改名 mv redis-6.2.7 redis 4、编译安装 cd redis make &amp;&amp; make install 5、修改配置 vi redis.conf #注释掉绑定用于远程登陆 #bind 127.0.0.1 -::1 #这里讲原来的no改为yes,目的是为了设置后台运行 daemonize yes #这里讲原来的yes改为no,目的是为了解决安全模式引起的报错 protected-mode no #此处本来是注释状态，取消注释后，设置redis永远的登陆密码 requirepass redis连接密码 二、redis集群配置 redis集群最少要6个redis，资源有限，可以一台机器配置6个redis 1、创建配置路径 #配置存放路径 mkdir -p /usr/local/redis/6380 mkdir -p /usr/local/redis/6381 mkdir -p /usr/local/redis/6382 mkdir -p /usr/local/redis/6383 mkdir -p /usr/local/redis/6384 mkdir -p /usr/local/redis/6385 #日志存放路径 mkdir -p /usr/local/redis/logs #redis数据库存放路径 mkdir -p /usr/local/redis/redisdata6380 mkdir -p /usr/local/redis/redisdata6381 mkdir -p /usr/local/redis/redisdata6382 mkdir -p /usr/local/redis/redisdata6383 mkdir -p /usr/local/redis/redisdata6384 mkdir -p /usr/local/redis/redisdata6385 2、拷贝修改配置 拷贝首份配置 cp /usr/local/redis/redis.conf /usr/local/redis/6380/ 修改几个配置 vim /usr/local/redis/6380/redis.conf #端口 port 6380 #取消绑定 #bind 127.0.0.1 -::1 #开启集群 cluster-enabled yes cluster-node-timeout 15000 #可后台运行 daemonize yes #可远程连接 protected-mode no #文件输出路径改下 cluster-config-file nodes-6380.conf pidfile /var/run/redis_6380.pid logfile &quot;/usr/local/redis/logs/redis-6380.log&quot; dir /usr/local/redis/redisdata6380 #密码及master密码 requirepass redis连接密码 masterauth redis连接密码 其他库配置只需将首份配置拷贝，然后全局替换端口 cp /usr/local/redis/6380/redis.conf /usr/local/redis/6381/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6382/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6383/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6384/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6385/ vim /usr/local/redis/6381/redis.conf :%s/6380/6381/g :wq vim /usr/local/redis/6382/redis.conf :%s/6380/6382/g :wq vim /usr/local/redis/6383/redis.conf :%s/6380/6383/g :wq vim /usr/local/redis/6384/redis.conf :%s/6380/6384/g :wq vim /usr/local/redis/6385/redis.conf :%s/6380/6385/g :wq 3、启动服务 /usr/local/redis/src/redis-server /usr/local/redis/6380/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6381/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6382/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6383/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6384/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6385/redis.conf 以上设置，可以将他们放在不同服务器中，比如6380与6381在一台服务器，6382与6383在一台服务器，6384与6385在一台服务器 在其中一台服务器执行以下命令 src/redis-cli –cluster create 6380redis所在ip:6380 6381redis所在ip:6381 6382redis所在ip:6382 6383redis所在ip:6383 ** **6384redis所在ip:6384 6385redis所在ip:6385 –cluster-replicas 1 -a redis连接密码 都在一起可以使用127.0.0.1代替ip src/redis-cli –cluster create 127.0.0.1:6380 127.0.0.1:6381 127.0.0.1:6382 127.0.0.1:6383 127.0.0.1:6384 127.0.0.1:6385 –cluster-replicas 1 -a redisPass 中间会询问几次，直接输入yes后回车,最后展示如下即表示成功 [OK] All nodes agree about slots configuration. &gt;&gt;&gt; Check for open slots... &gt;&gt;&gt; Check slots coverage... [OK] All 16384 slots covered. 集群登录，挑一个节点登录即可 src/redis-cli -h 127.0.0.1 -p 6380 -c -a 设置的密码 4、查看集群状态 cluster nodes 5e3d9195c01ce5ab069b3042e2e27171241814dc 127.0.0.1:6381@16381 master - 0 1661353971336 2 connected 5461-10922 601e269d458e6f2a6af9b183316e9cd3fc3bbeb1 127.0.0.1:6383@16383 slave 5e3d9195c01ce5ab069b3042e2e27171241814dc 0 1661353968324 2 connected afb32dc53068eb5bfe3b544fd3ae5adfad29ea7f 127.0.0.1:6385@16385 slave 9a6b56517eceab367aebc0105238c010792aa36c 0 1661353970333 1 connected f6b538e2df80fea1e948fda3024647bdccae3f33 127.0.0.1:6382@16382 master - 0 1661353970000 3 connected 10923-16383 b8e79566afa7b55b1a451024f50c142f658ec4a2 127.0.0.1:6384@16384 slave f6b538e2df80fea1e948fda3024647bdccae3f33 0 1661353968000 3 connected 9a6b56517eceab367aebc0105238c010792aa36c 127.0.0.1:6380@16380 myself,master - 0 1661353969000 1 connected 0-5460 附录 集群重启脚本，仅适用单服务器，按照以上方式配置的集群 ports=(&#39;6380&#39; &#39;6381&#39; &#39;6382&#39; &#39;6383&#39; &#39;6384&#39; &#39;6385&#39;) path=/usr/local/custom/redis/ dataDirPre=redisdata pid=`ps -ef | grep redis-server | grep -v grep | awk &#39;{print $2}&#39;` if [ -z &quot;$pid&quot; ]; then echo &quot;[ not find pid ]&quot; else for id in $pid do echo &quot;kill -9 pid:&quot; $id kill -9 $id done echo &quot;开始删除数据&quot; for port in ${ports[@]} do echo $path$port echo $path$dataDirPre$port rm -rf $path$port/dump.rdb rm -rf $path$port/appendonly.aof rm -rf $path$port/nodes-*.* rm -rf $path$dataDirPre$port/dump.rdb rm -rf $path$dataDirPre$port/appendonly.aof rm -rf $path$dataDirPre$port/nodes-*.* done echo &quot;开始创建集群&quot; for port in ${ports[@]} do str=$str&quot; 127.0.0.1:&quot;$port&quot; &quot; $path&quot;src/redis-server&quot; $path&quot;/&quot;$port&quot;/redis.conf&quot; done $path&#39;src/redis-cli&#39; --cluster create $str --cluster-replicas 1 -a redisPass fi echo &quot;----------------------日志详见/usr/local/custom/redis/logs---------------&quot;" />
+<meta property="og:description" content="redis是个好东西啊，编译安装需要gcc yum -y install gcc 一、单机redis安装 1、下载 wget https://download.redis.io/releases/redis-6.2.7.tar.gz 2、解压 tar xzf redis-6.2.7.tar.gz 3、改名 mv redis-6.2.7 redis 4、编译安装 cd redis make &amp;&amp; make install 5、修改配置 vi redis.conf #注释掉绑定用于远程登陆 #bind 127.0.0.1 -::1 #这里讲原来的no改为yes,目的是为了设置后台运行 daemonize yes #这里讲原来的yes改为no,目的是为了解决安全模式引起的报错 protected-mode no #此处本来是注释状态，取消注释后，设置redis永远的登陆密码 requirepass redis连接密码 二、redis集群配置 redis集群最少要6个redis，资源有限，可以一台机器配置6个redis 1、创建配置路径 #配置存放路径 mkdir -p /usr/local/redis/6380 mkdir -p /usr/local/redis/6381 mkdir -p /usr/local/redis/6382 mkdir -p /usr/local/redis/6383 mkdir -p /usr/local/redis/6384 mkdir -p /usr/local/redis/6385 #日志存放路径 mkdir -p /usr/local/redis/logs #redis数据库存放路径 mkdir -p /usr/local/redis/redisdata6380 mkdir -p /usr/local/redis/redisdata6381 mkdir -p /usr/local/redis/redisdata6382 mkdir -p /usr/local/redis/redisdata6383 mkdir -p /usr/local/redis/redisdata6384 mkdir -p /usr/local/redis/redisdata6385 2、拷贝修改配置 拷贝首份配置 cp /usr/local/redis/redis.conf /usr/local/redis/6380/ 修改几个配置 vim /usr/local/redis/6380/redis.conf #端口 port 6380 #取消绑定 #bind 127.0.0.1 -::1 #开启集群 cluster-enabled yes cluster-node-timeout 15000 #可后台运行 daemonize yes #可远程连接 protected-mode no #文件输出路径改下 cluster-config-file nodes-6380.conf pidfile /var/run/redis_6380.pid logfile &quot;/usr/local/redis/logs/redis-6380.log&quot; dir /usr/local/redis/redisdata6380 #密码及master密码 requirepass redis连接密码 masterauth redis连接密码 其他库配置只需将首份配置拷贝，然后全局替换端口 cp /usr/local/redis/6380/redis.conf /usr/local/redis/6381/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6382/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6383/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6384/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6385/ vim /usr/local/redis/6381/redis.conf :%s/6380/6381/g :wq vim /usr/local/redis/6382/redis.conf :%s/6380/6382/g :wq vim /usr/local/redis/6383/redis.conf :%s/6380/6383/g :wq vim /usr/local/redis/6384/redis.conf :%s/6380/6384/g :wq vim /usr/local/redis/6385/redis.conf :%s/6380/6385/g :wq 3、启动服务 /usr/local/redis/src/redis-server /usr/local/redis/6380/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6381/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6382/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6383/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6384/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6385/redis.conf 以上设置，可以将他们放在不同服务器中，比如6380与6381在一台服务器，6382与6383在一台服务器，6384与6385在一台服务器 在其中一台服务器执行以下命令 src/redis-cli –cluster create 6380redis所在ip:6380 6381redis所在ip:6381 6382redis所在ip:6382 6383redis所在ip:6383 ** **6384redis所在ip:6384 6385redis所在ip:6385 –cluster-replicas 1 -a redis连接密码 都在一起可以使用127.0.0.1代替ip src/redis-cli –cluster create 127.0.0.1:6380 127.0.0.1:6381 127.0.0.1:6382 127.0.0.1:6383 127.0.0.1:6384 127.0.0.1:6385 –cluster-replicas 1 -a redisPass 中间会询问几次，直接输入yes后回车,最后展示如下即表示成功 [OK] All nodes agree about slots configuration. &gt;&gt;&gt; Check for open slots... &gt;&gt;&gt; Check slots coverage... [OK] All 16384 slots covered. 集群登录，挑一个节点登录即可 src/redis-cli -h 127.0.0.1 -p 6380 -c -a 设置的密码 4、查看集群状态 cluster nodes 5e3d9195c01ce5ab069b3042e2e27171241814dc 127.0.0.1:6381@16381 master - 0 1661353971336 2 connected 5461-10922 601e269d458e6f2a6af9b183316e9cd3fc3bbeb1 127.0.0.1:6383@16383 slave 5e3d9195c01ce5ab069b3042e2e27171241814dc 0 1661353968324 2 connected afb32dc53068eb5bfe3b544fd3ae5adfad29ea7f 127.0.0.1:6385@16385 slave 9a6b56517eceab367aebc0105238c010792aa36c 0 1661353970333 1 connected f6b538e2df80fea1e948fda3024647bdccae3f33 127.0.0.1:6382@16382 master - 0 1661353970000 3 connected 10923-16383 b8e79566afa7b55b1a451024f50c142f658ec4a2 127.0.0.1:6384@16384 slave f6b538e2df80fea1e948fda3024647bdccae3f33 0 1661353968000 3 connected 9a6b56517eceab367aebc0105238c010792aa36c 127.0.0.1:6380@16380 myself,master - 0 1661353969000 1 connected 0-5460 附录 集群重启脚本，仅适用单服务器，按照以上方式配置的集群 ports=(&#39;6380&#39; &#39;6381&#39; &#39;6382&#39; &#39;6383&#39; &#39;6384&#39; &#39;6385&#39;) path=/usr/local/custom/redis/ dataDirPre=redisdata pid=`ps -ef | grep redis-server | grep -v grep | awk &#39;{print $2}&#39;` if [ -z &quot;$pid&quot; ]; then echo &quot;[ not find pid ]&quot; else for id in $pid do echo &quot;kill -9 pid:&quot; $id kill -9 $id done echo &quot;开始删除数据&quot; for port in ${ports[@]} do echo $path$port echo $path$dataDirPre$port rm -rf $path$port/dump.rdb rm -rf $path$port/appendonly.aof rm -rf $path$port/nodes-*.* rm -rf $path$dataDirPre$port/dump.rdb rm -rf $path$dataDirPre$port/appendonly.aof rm -rf $path$dataDirPre$port/nodes-*.* done echo &quot;开始创建集群&quot; for port in ${ports[@]} do str=$str&quot; 127.0.0.1:&quot;$port&quot; &quot; $path&quot;src/redis-server&quot; $path&quot;/&quot;$port&quot;/redis.conf&quot; done $path&#39;src/redis-cli&#39; --cluster create $str --cluster-replicas 1 -a redisPass fi echo &quot;----------------------日志详见/usr/local/custom/redis/logs---------------&quot;" />
+<link rel="canonical" href="http://localhost:4000/2022/10/12/Linux-CentOS-redis%E5%AE%89%E8%A3%85.html" />
+<meta property="og:url" content="http://localhost:4000/2022/10/12/Linux-CentOS-redis%E5%AE%89%E8%A3%85.html" />
+<meta property="og:site_name" content="小_屮、的博客日记" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2022-10-12T00:00:00+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Linux Centos Redis安装" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-10-12T00:00:00+08:00","datePublished":"2022-10-12T00:00:00+08:00","description":"redis是个好东西啊，编译安装需要gcc yum -y install gcc 一、单机redis安装 1、下载 wget https://download.redis.io/releases/redis-6.2.7.tar.gz 2、解压 tar xzf redis-6.2.7.tar.gz 3、改名 mv redis-6.2.7 redis 4、编译安装 cd redis make &amp;&amp; make install 5、修改配置 vi redis.conf #注释掉绑定用于远程登陆 #bind 127.0.0.1 -::1 #这里讲原来的no改为yes,目的是为了设置后台运行 daemonize yes #这里讲原来的yes改为no,目的是为了解决安全模式引起的报错 protected-mode no #此处本来是注释状态，取消注释后，设置redis永远的登陆密码 requirepass redis连接密码 二、redis集群配置 redis集群最少要6个redis，资源有限，可以一台机器配置6个redis 1、创建配置路径 #配置存放路径 mkdir -p /usr/local/redis/6380 mkdir -p /usr/local/redis/6381 mkdir -p /usr/local/redis/6382 mkdir -p /usr/local/redis/6383 mkdir -p /usr/local/redis/6384 mkdir -p /usr/local/redis/6385 #日志存放路径 mkdir -p /usr/local/redis/logs #redis数据库存放路径 mkdir -p /usr/local/redis/redisdata6380 mkdir -p /usr/local/redis/redisdata6381 mkdir -p /usr/local/redis/redisdata6382 mkdir -p /usr/local/redis/redisdata6383 mkdir -p /usr/local/redis/redisdata6384 mkdir -p /usr/local/redis/redisdata6385 2、拷贝修改配置 拷贝首份配置 cp /usr/local/redis/redis.conf /usr/local/redis/6380/ 修改几个配置 vim /usr/local/redis/6380/redis.conf #端口 port 6380 #取消绑定 #bind 127.0.0.1 -::1 #开启集群 cluster-enabled yes cluster-node-timeout 15000 #可后台运行 daemonize yes #可远程连接 protected-mode no #文件输出路径改下 cluster-config-file nodes-6380.conf pidfile /var/run/redis_6380.pid logfile &quot;/usr/local/redis/logs/redis-6380.log&quot; dir /usr/local/redis/redisdata6380 #密码及master密码 requirepass redis连接密码 masterauth redis连接密码 其他库配置只需将首份配置拷贝，然后全局替换端口 cp /usr/local/redis/6380/redis.conf /usr/local/redis/6381/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6382/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6383/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6384/ cp /usr/local/redis/6380/redis.conf /usr/local/redis/6385/ vim /usr/local/redis/6381/redis.conf :%s/6380/6381/g :wq vim /usr/local/redis/6382/redis.conf :%s/6380/6382/g :wq vim /usr/local/redis/6383/redis.conf :%s/6380/6383/g :wq vim /usr/local/redis/6384/redis.conf :%s/6380/6384/g :wq vim /usr/local/redis/6385/redis.conf :%s/6380/6385/g :wq 3、启动服务 /usr/local/redis/src/redis-server /usr/local/redis/6380/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6381/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6382/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6383/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6384/redis.conf /usr/local/redis/src/redis-server /usr/local/redis/6385/redis.conf 以上设置，可以将他们放在不同服务器中，比如6380与6381在一台服务器，6382与6383在一台服务器，6384与6385在一台服务器 在其中一台服务器执行以下命令 src/redis-cli –cluster create 6380redis所在ip:6380 6381redis所在ip:6381 6382redis所在ip:6382 6383redis所在ip:6383 ** **6384redis所在ip:6384 6385redis所在ip:6385 –cluster-replicas 1 -a redis连接密码 都在一起可以使用127.0.0.1代替ip src/redis-cli –cluster create 127.0.0.1:6380 127.0.0.1:6381 127.0.0.1:6382 127.0.0.1:6383 127.0.0.1:6384 127.0.0.1:6385 –cluster-replicas 1 -a redisPass 中间会询问几次，直接输入yes后回车,最后展示如下即表示成功 [OK] All nodes agree about slots configuration. &gt;&gt;&gt; Check for open slots... &gt;&gt;&gt; Check slots coverage... [OK] All 16384 slots covered. 集群登录，挑一个节点登录即可 src/redis-cli -h 127.0.0.1 -p 6380 -c -a 设置的密码 4、查看集群状态 cluster nodes 5e3d9195c01ce5ab069b3042e2e27171241814dc 127.0.0.1:6381@16381 master - 0 1661353971336 2 connected 5461-10922 601e269d458e6f2a6af9b183316e9cd3fc3bbeb1 127.0.0.1:6383@16383 slave 5e3d9195c01ce5ab069b3042e2e27171241814dc 0 1661353968324 2 connected afb32dc53068eb5bfe3b544fd3ae5adfad29ea7f 127.0.0.1:6385@16385 slave 9a6b56517eceab367aebc0105238c010792aa36c 0 1661353970333 1 connected f6b538e2df80fea1e948fda3024647bdccae3f33 127.0.0.1:6382@16382 master - 0 1661353970000 3 connected 10923-16383 b8e79566afa7b55b1a451024f50c142f658ec4a2 127.0.0.1:6384@16384 slave f6b538e2df80fea1e948fda3024647bdccae3f33 0 1661353968000 3 connected 9a6b56517eceab367aebc0105238c010792aa36c 127.0.0.1:6380@16380 myself,master - 0 1661353969000 1 connected 0-5460 附录 集群重启脚本，仅适用单服务器，按照以上方式配置的集群 ports=(&#39;6380&#39; &#39;6381&#39; &#39;6382&#39; &#39;6383&#39; &#39;6384&#39; &#39;6385&#39;) path=/usr/local/custom/redis/ dataDirPre=redisdata pid=`ps -ef | grep redis-server | grep -v grep | awk &#39;{print $2}&#39;` if [ -z &quot;$pid&quot; ]; then echo &quot;[ not find pid ]&quot; else for id in $pid do echo &quot;kill -9 pid:&quot; $id kill -9 $id done echo &quot;开始删除数据&quot; for port in ${ports[@]} do echo $path$port echo $path$dataDirPre$port rm -rf $path$port/dump.rdb rm -rf $path$port/appendonly.aof rm -rf $path$port/nodes-*.* rm -rf $path$dataDirPre$port/dump.rdb rm -rf $path$dataDirPre$port/appendonly.aof rm -rf $path$dataDirPre$port/nodes-*.* done echo &quot;开始创建集群&quot; for port in ${ports[@]} do str=$str&quot; 127.0.0.1:&quot;$port&quot; &quot; $path&quot;src/redis-server&quot; $path&quot;/&quot;$port&quot;/redis.conf&quot; done $path&#39;src/redis-cli&#39; --cluster create $str --cluster-replicas 1 -a redisPass fi echo &quot;----------------------日志详见/usr/local/custom/redis/logs---------------&quot;","headline":"Linux Centos Redis安装","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2022/10/12/Linux-CentOS-redis%E5%AE%89%E8%A3%85.html"},"url":"http://localhost:4000/2022/10/12/Linux-CentOS-redis%E5%AE%89%E8%A3%85.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="小_屮、的博客日记" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">小_屮、的博客日记</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger">
+            <a class="page-link" href="https://jekyllrb.com/" target="_blank">自己整个🤩</a>
+        </div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Linux Centos Redis安装</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2022-10-12T00:00:00+08:00" itemprop="datePublished">2022年10月12日
+      </time>• <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span class="p-author h-card" itemprop="name">小_屮、</span></span></p><span class="tag-type">#运维</span><span class="tag-type">#linux</span><span class="tag-type">#CentOS</span><span class="tag-type">#redis</span><span class="tag-type">#redis集群</span></header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>redis是个好东西啊，编译安装需要gcc</p>
+
+<p><strong>yum -y install gcc</strong></p>
+
+<h2 id="一单机redis安装">一、单机redis安装</h2>
+
+<h3 id="1下载">1、下载</h3>
+
+<p>wget https://download.redis.io/releases/redis-6.2.7.tar.gz</p>
+
+<h3 id="2解压">2、解压</h3>
+
+<p>tar xzf redis-6.2.7.tar.gz</p>
+
+<h3 id="3改名">3、改名</h3>
+
+<p>mv redis-6.2.7 redis</p>
+
+<h3 id="4编译安装">4、编译安装</h3>
+
+<p>cd redis</p>
+
+<p>make &amp;&amp; make install</p>
+
+<h3 id="5修改配置">5、修改配置</h3>
+
+<p>vi redis.conf</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#注释掉绑定用于远程登陆
+#bind 127.0.0.1 -::1
+#这里讲原来的no改为yes,目的是为了设置后台运行
+daemonize yes
+#这里讲原来的yes改为no,目的是为了解决安全模式引起的报错
+protected-mode no
+#此处本来是注释状态，取消注释后，设置redis永远的登陆密码
+requirepass redis连接密码
+</code></pre></div></div>
+
+<h2 id="二redis集群配置">二、redis集群配置</h2>
+
+<p>redis集群最少要6个redis，资源有限，可以一台机器配置6个redis</p>
+
+<h3 id="1创建配置路径">1、创建配置路径</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#配置存放路径
+mkdir -p /usr/local/redis/6380
+mkdir -p /usr/local/redis/6381
+mkdir -p /usr/local/redis/6382
+mkdir -p /usr/local/redis/6383
+mkdir -p /usr/local/redis/6384
+mkdir -p /usr/local/redis/6385
+#日志存放路径
+mkdir -p /usr/local/redis/logs
+#redis数据库存放路径
+mkdir -p /usr/local/redis/redisdata6380
+mkdir -p /usr/local/redis/redisdata6381
+mkdir -p /usr/local/redis/redisdata6382
+mkdir -p /usr/local/redis/redisdata6383
+mkdir -p /usr/local/redis/redisdata6384
+mkdir -p /usr/local/redis/redisdata6385
+</code></pre></div></div>
+
+<h3 id="2拷贝修改配置">2、拷贝修改配置</h3>
+
+<p>拷贝首份配置</p>
+
+<p>cp /usr/local/redis/redis.conf /usr/local/redis/6380/</p>
+
+<p>修改几个配置</p>
+
+<p>vim /usr/local/redis/6380/redis.conf</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#端口
+port 6380
+#取消绑定
+#bind 127.0.0.1  -::1
+#开启集群
+cluster-enabled yes
+cluster-node-timeout 15000
+#可后台运行
+daemonize yes
+#可远程连接
+protected-mode no
+#文件输出路径改下
+cluster-config-file nodes-6380.conf
+pidfile /var/run/redis_6380.pid
+logfile "/usr/local/redis/logs/redis-6380.log"
+dir /usr/local/redis/redisdata6380
+#密码及master密码
+requirepass redis连接密码
+masterauth redis连接密码
+</code></pre></div></div>
+
+<p>其他库配置只需将首份配置拷贝，然后全局替换端口</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cp /usr/local/redis/6380/redis.conf /usr/local/redis/6381/
+cp /usr/local/redis/6380/redis.conf /usr/local/redis/6382/
+cp /usr/local/redis/6380/redis.conf /usr/local/redis/6383/
+cp /usr/local/redis/6380/redis.conf /usr/local/redis/6384/
+cp /usr/local/redis/6380/redis.conf /usr/local/redis/6385/
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>vim /usr/local/redis/6381/redis.conf   
+:%s/6380/6381/g
+:wq
+vim /usr/local/redis/6382/redis.conf   
+:%s/6380/6382/g
+:wq
+vim /usr/local/redis/6383/redis.conf   
+:%s/6380/6383/g
+:wq
+vim /usr/local/redis/6384/redis.conf   
+:%s/6380/6384/g
+:wq
+vim /usr/local/redis/6385/redis.conf   
+:%s/6380/6385/g
+:wq
+</code></pre></div></div>
+
+<h3 id="3启动服务">3、启动服务</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/usr/local/redis/src/redis-server /usr/local/redis/6380/redis.conf
+/usr/local/redis/src/redis-server /usr/local/redis/6381/redis.conf
+/usr/local/redis/src/redis-server /usr/local/redis/6382/redis.conf
+/usr/local/redis/src/redis-server /usr/local/redis/6383/redis.conf
+/usr/local/redis/src/redis-server /usr/local/redis/6384/redis.conf
+/usr/local/redis/src/redis-server /usr/local/redis/6385/redis.conf
+</code></pre></div></div>
+
+<p>以上设置，可以将他们放在不同服务器中，比如6380与6381在一台服务器，6382与6383在一台服务器，6384与6385在一台服务器</p>
+
+<p>在其中一台服务器执行以下命令</p>
+
+<p>src/redis-cli –cluster create   <strong>6380redis所在ip:6380</strong>    <strong>6381redis所在ip:6381</strong>      <strong>6382redis所在ip:6382</strong>      <strong>6383redis所在ip:6383 **     **6384redis所在ip:6384</strong>      <strong>6385redis所在ip:6385</strong>  –cluster-replicas 1 -a <strong>redis连接密码</strong></p>
+
+<p>都在一起可以使用127.0.0.1代替ip</p>
+
+<p>src/redis-cli –cluster create 127.0.0.1:6380 127.0.0.1:6381 127.0.0.1:6382 127.0.0.1:6383 127.0.0.1:6384 127.0.0.1:6385  –cluster-replicas 1 -a redisPass</p>
+
+<p>中间会询问几次，直接输入yes后回车,最后展示如下即表示成功</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[OK] All nodes agree about slots configuration.
+&gt;&gt;&gt; Check for open slots...
+&gt;&gt;&gt; Check slots coverage...
+[OK] All 16384 slots covered.
+</code></pre></div></div>
+
+<p>集群登录，挑一个节点登录即可</p>
+
+<p>src/redis-cli -h 127.0.0.1 -p 6380 -c -a 设置的密码</p>
+
+<h3 id="4查看集群状态">4、查看集群状态</h3>
+
+<p>cluster nodes</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>5e3d9195c01ce5ab069b3042e2e27171241814dc 127.0.0.1:6381@16381 master - 0 1661353971336 2 connected 5461-10922
+601e269d458e6f2a6af9b183316e9cd3fc3bbeb1 127.0.0.1:6383@16383 slave 5e3d9195c01ce5ab069b3042e2e27171241814dc 0 1661353968324 2 connected
+afb32dc53068eb5bfe3b544fd3ae5adfad29ea7f 127.0.0.1:6385@16385 slave 9a6b56517eceab367aebc0105238c010792aa36c 0 1661353970333 1 connected
+f6b538e2df80fea1e948fda3024647bdccae3f33 127.0.0.1:6382@16382 master - 0 1661353970000 3 connected 10923-16383
+b8e79566afa7b55b1a451024f50c142f658ec4a2 127.0.0.1:6384@16384 slave f6b538e2df80fea1e948fda3024647bdccae3f33 0 1661353968000 3 connected
+9a6b56517eceab367aebc0105238c010792aa36c 127.0.0.1:6380@16380 myself,master - 0 1661353969000 1 connected 0-5460
+
+</code></pre></div></div>
+
+<h2 id="附录">附录</h2>
+
+<p>集群重启脚本，仅适用单服务器，按照以上方式配置的集群</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ports=('6380' '6381' '6382' '6383' '6384' '6385')
+path=/usr/local/custom/redis/
+dataDirPre=redisdata
+
+pid=`ps -ef | grep redis-server | grep -v grep | awk '{print $2}'`
+if [ -z "$pid" ];
+	then
+		echo "[ not find pid ]"
+else
+	for id in $pid
+		do
+			echo "kill -9 pid:" $id
+			kill -9 $id
+		done
+	echo "开始删除数据"
+	for port in ${ports[@]}
+ 		do
+			echo $path$port
+			echo $path$dataDirPre$port
+			rm -rf $path$port/dump.rdb
+			rm -rf $path$port/appendonly.aof
+			rm -rf $path$port/nodes-*.*
+			rm -rf $path$dataDirPre$port/dump.rdb
+			rm -rf $path$dataDirPre$port/appendonly.aof
+			rm -rf $path$dataDirPre$port/nodes-*.*
+		done
+	echo "开始创建集群"
+	for port in ${ports[@]}
+		do
+			str=$str" 127.0.0.1:"$port" "
+			$path"src/redis-server" $path"/"$port"/redis.conf"
+		done
+	$path'src/redis-cli' --cluster create $str  --cluster-replicas 1 -a redisPass		
+fi
+echo "----------------------日志详见/usr/local/custom/redis/logs---------------"
+</code></pre></div></div>
+
+
+  </div>
+
+  <a class="u-url" href="/2022/10/12/Linux-CentOS-redis%E5%AE%89%E8%A3%85.html" hidden></a>
+
+  <div class="previous-next"><div class="previous-post">
+        👈🏻:<a href="/2022/08/26/Linux-CentOS-rabbitMQ%E5%AE%89%E8%A3%85.html">Linux Centos Rabbitmq安装</a>
+      </div><div class="next-post">
+        <a href="/2022/10/14/Linux-CentOS-git%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%90%AD%E5%BB%BA.html">Linux Centos Git服务器搭建</a>:👉🏻
+      </div></div>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">小_屮、的博客日记</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">Google邮箱,一般不看</li>
+          <li><a class="u-email" href="mailto:xunderlinec1960@gmail.com">xunderlinec1960@gmail.com</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">QQ邮箱，有事发这里</li>
+          <li><a class="u-email" href="mailto:1960481101@qq.com">1960481101@qq.com</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">github基本没在用</li>
+          <li><a href="https://github.com/XD3-BB"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">XD3-BB</span></a></li>
+        </ul>
+      </div>
+    </div>
+
+      <div class="footer-col footer-col-3">
+        <span class="p-name">WordPress收费，Ghost又太大了，2核2G的服务器跑不起来。。还得是jekyll🥰</span>
+      </div>
+  </div>
+
+</footer>
+</body>
+
+</html>

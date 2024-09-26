@@ -1,0 +1,36 @@
+<footer class="site-footer h-card">
+  <data class="u-url" href="{{ "/" | relative_url }}"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">{{ site.title | escape }}</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">{{ site.desc.email.google | escape }}</li>
+          <li><a class="u-email" href="mailto:{{ site.email.google }}">{{ site.email.google }}</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">{{ site.desc.email.qq| escape }}</li>
+          <li><a class="u-email" href="mailto:{{ site.email.qq}}">{{ site.email.qq}}</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-col">
+        <ul class="contact-list">
+          <li class="p-name">{{ site.desc.github | escape }}</li>
+          <li><a href="https://github.com/{{ site.github_username| cgi_escape | escape }}"><svg class="svg-icon"><use xlink:href="{{ '/assets/minima-social-icons.svg#github' | relative_url }}"></use></svg> <span class="username">{{ site.github_username| escape }}</span></a></li>
+        </ul>
+      </div>
+    </div>
+
+      <div class="footer-col footer-col-3">
+        <span class="p-name">{{- site.description | escape -}}</span>
+      </div>
+  </div>
+
+</footer>
