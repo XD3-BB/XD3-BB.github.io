@@ -32,7 +32,7 @@
         </label>
 
         <div class="trigger">
-            <a class="page-link" href="https://jekyllrb.com/" target="_blank">自己整个🤩</a>
+            <a class="page-link" href="https://jekyllrb.com/" target="_blank">来自jekyll🤩</a>
         </div>
       </nav></div>
 </header>
@@ -145,24 +145,37 @@
     });
   });
 
+  let selected_tag = [];
   
   document.querySelectorAll('.tag-for-select').forEach(link => {
     link.addEventListener('click', function(event) {
       event.preventDefault();
 	 link.classList.toggle('tag-type-active');
-	 
+
+	 let cut_select_tag = link.getAttribute('data-tag');
 	 if(link.classList.contains('tag-type-active')) {
-	 	show_article(link.getAttribute('data-tag'));
+	 	selected_tag.push(cut_select_tag);
 	 }else {
-	 	hide_article(link.getAttribute('data-tag'));
+	 	selected_tag = selected_tag.filter(item => item != cut_select_tag);
 	 }
+	 show_article();
   	});
    });
 
-  function show_article(e) {
-  	let tags = e.split('--link--');
+  function show_article() {
   	document.querySelectorAll('.post-selector-box').forEach(link => {
-		let has_tags = link.getAttribute('data-tag').split(' ');
+  		let pid = link.parentElement.parentElement.id;
+		let selects = selected_tag.filter(t => t.startsWith(pid));
+		if(selects.length === 0) { 
+			link.style.display = 'block';
+		} else {
+			if (link.getAttribute('data-tag').split(' ').filter(has_tags => selects.includes(has_tags)).length > 0) {
+				link.style.display = 'block';
+			} else {
+				link.style.display = 'none';
+			}
+		}
+		
 		
   	});
   }
@@ -178,8 +191,6 @@
   <data class="u-url" href="/"></data>
 
   <div class="wrapper">
-
-    <h2 class="footer-heading">小_屮、的博客日记</h2>
 
     <div class="footer-col-wrapper">
       <div class="footer-col">
