@@ -1,0 +1,280 @@
+<h2 id="java12">Java12</h2>
+
+<h3 id="string-增强">String 增强</h3>
+
+<p>Java 12 增加了两个的字符串处理方法，如以下所示。</p>
+
+<p><code class="language-plaintext highlighter-rouge">indent()</code> 方法可以实现字符串缩进。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">String</span> <span class="n">text</span> <span class="o">=</span> <span class="s">"Java"</span><span class="o">;</span>
+<span class="c1">// 缩进 4 格</span>
+<span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="na">indent</span><span class="o">(</span><span class="mi">4</span><span class="o">);</span>
+<span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">text</span><span class="o">);</span>
+<span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="na">indent</span><span class="o">(-</span><span class="mi">10</span><span class="o">);</span>
+<span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">text</span><span class="o">);</span>
+</code></pre></div></div>
+
+<p>输出：</p>
+
+<pre><code class="language-plain">     Java
+Java
+</code></pre>
+
+<p><code class="language-plaintext highlighter-rouge">transform()</code> 方法可以用来转变指定字符串。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">String</span> <span class="n">result</span> <span class="o">=</span> <span class="s">"foo"</span><span class="o">.</span><span class="na">transform</span><span class="o">(</span><span class="n">input</span> <span class="o">-&gt;</span> <span class="n">input</span> <span class="o">+</span> <span class="s">" bar"</span><span class="o">);</span>
+<span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">result</span><span class="o">);</span> <span class="c1">// foo bar</span>
+</code></pre></div></div>
+
+<h3 id="files-增强文件比较">Files 增强（文件比较）</h3>
+
+<p>Java 12 添加了以下方法来比较两个文件：</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">static</span> <span class="kt">long</span> <span class="nf">mismatch</span><span class="o">(</span><span class="nc">Path</span> <span class="n">path</span><span class="o">,</span> <span class="nc">Path</span> <span class="n">path2</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">IOException</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">mismatch()</code> 方法用于比较两个文件，并返回第一个不匹配字符的位置，如果文件相同则返回 -1L。</p>
+
+<p>代码示例（两个文件内容相同的情况）：</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">Path</span> <span class="n">filePath1</span> <span class="o">=</span> <span class="nc">Files</span><span class="o">.</span><span class="na">createTempFile</span><span class="o">(</span><span class="s">"file1"</span><span class="o">,</span> <span class="s">".txt"</span><span class="o">);</span>
+<span class="nc">Path</span> <span class="n">filePath2</span> <span class="o">=</span> <span class="nc">Files</span><span class="o">.</span><span class="na">createTempFile</span><span class="o">(</span><span class="s">"file2"</span><span class="o">,</span> <span class="s">".txt"</span><span class="o">);</span>
+<span class="nc">Files</span><span class="o">.</span><span class="na">writeString</span><span class="o">(</span><span class="n">filePath1</span><span class="o">,</span> <span class="s">"Java 12 Article"</span><span class="o">);</span>
+<span class="nc">Files</span><span class="o">.</span><span class="na">writeString</span><span class="o">(</span><span class="n">filePath2</span><span class="o">,</span> <span class="s">"Java 12 Article"</span><span class="o">);</span>
+
+<span class="kt">long</span> <span class="n">mismatch</span> <span class="o">=</span> <span class="nc">Files</span><span class="o">.</span><span class="na">mismatch</span><span class="o">(</span><span class="n">filePath1</span><span class="o">,</span> <span class="n">filePath2</span><span class="o">);</span>
+<span class="n">assertEquals</span><span class="o">(-</span><span class="mi">1</span><span class="o">,</span> <span class="n">mismatch</span><span class="o">);</span>
+</code></pre></div></div>
+
+<p>代码示例（两个文件内容不相同的情况）：</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">Path</span> <span class="n">filePath3</span> <span class="o">=</span> <span class="nc">Files</span><span class="o">.</span><span class="na">createTempFile</span><span class="o">(</span><span class="s">"file3"</span><span class="o">,</span> <span class="s">".txt"</span><span class="o">);</span>
+<span class="nc">Path</span> <span class="n">filePath4</span> <span class="o">=</span> <span class="nc">Files</span><span class="o">.</span><span class="na">createTempFile</span><span class="o">(</span><span class="s">"file4"</span><span class="o">,</span> <span class="s">".txt"</span><span class="o">);</span>
+<span class="nc">Files</span><span class="o">.</span><span class="na">writeString</span><span class="o">(</span><span class="n">filePath3</span><span class="o">,</span> <span class="s">"Java 12 Article"</span><span class="o">);</span>
+<span class="nc">Files</span><span class="o">.</span><span class="na">writeString</span><span class="o">(</span><span class="n">filePath4</span><span class="o">,</span> <span class="s">"Java 12 Tutorial"</span><span class="o">);</span>
+
+<span class="kt">long</span> <span class="n">mismatch</span> <span class="o">=</span> <span class="nc">Files</span><span class="o">.</span><span class="na">mismatch</span><span class="o">(</span><span class="n">filePath3</span><span class="o">,</span> <span class="n">filePath4</span><span class="o">);</span>
+<span class="n">assertEquals</span><span class="o">(</span><span class="mi">8</span><span class="o">,</span> <span class="n">mismatch</span><span class="o">);</span>
+</code></pre></div></div>
+
+<h3 id="数字格式化工具类">数字格式化工具类</h3>
+
+<p><code class="language-plaintext highlighter-rouge">NumberFormat</code> 新增了对复杂的数字进行格式化的支持</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">NumberFormat</span> <span class="n">fmt</span> <span class="o">=</span> <span class="nc">NumberFormat</span><span class="o">.</span><span class="na">getCompactNumberInstance</span><span class="o">(</span><span class="nc">Locale</span><span class="o">.</span><span class="na">US</span><span class="o">,</span> <span class="nc">NumberFormat</span><span class="o">.</span><span class="na">Style</span><span class="o">.</span><span class="na">SHORT</span><span class="o">);</span>
+<span class="nc">String</span> <span class="n">result</span> <span class="o">=</span> <span class="n">fmt</span><span class="o">.</span><span class="na">format</span><span class="o">(</span><span class="mi">1000</span><span class="o">);</span>
+<span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">result</span><span class="o">);</span>
+</code></pre></div></div>
+
+<p>输出:</p>
+
+<pre><code class="language-plain">1K
+</code></pre>
+
+<h3 id="shenandoah-gc">Shenandoah GC</h3>
+
+<p>Redhat 主导开发的 Pauseless GC 实现，主要目标是 99.9% 的暂停小于 10ms，暂停与堆大小无关等</p>
+
+<p>和 Java11 开源的 ZGC 相比（需要升级到 JDK11 才能使用），Shenandoah GC 有稳定的 JDK8u 版本，在 Java8 占据主要市场份额的今天有更大的可落地性。</p>
+
+<h3 id="g1-收集器优化">G1 收集器优化</h3>
+
+<p>Java12 为默认的垃圾收集器 G1 带来了两项更新:</p>
+
+<ul>
+  <li><strong>可中止的混合收集集合</strong>：JEP344 的实现，为了达到用户提供的停顿时间目标，JEP 344 通过把要被回收的区域集（混合收集集合）拆分为强制和可选部分，使 G1 垃圾回收器能中止垃圾回收过程。 G1 可以中止可选部分的回收以达到停顿时间目标</li>
+  <li><strong>及时返回未使用的已分配内存</strong>：JEP346 的实现，增强 G1 GC，以便在空闲时自动将 Java 堆内存返回给操作系统</li>
+</ul>
+
+<h3 id="预览新特性">预览新特性</h3>
+
+<p>作为预览特性加入，需要在<code class="language-plaintext highlighter-rouge">javac</code>编译和<code class="language-plaintext highlighter-rouge">java</code>运行时增加参数<code class="language-plaintext highlighter-rouge">--enable-preview</code> 。</p>
+
+<h4 id="增强-switch">增强 Switch</h4>
+
+<p>传统的 <code class="language-plaintext highlighter-rouge">switch</code> 语法存在容易漏写 <code class="language-plaintext highlighter-rouge">break</code> 的问题，而且从代码整洁性层面来看，多个 break 本质也是一种重复。</p>
+
+<p>Java12 增强了 <code class="language-plaintext highlighter-rouge">switch</code> 表达式，使用类似 lambda 语法条件匹配成功后的执行块，不需要多写 break 。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">switch</span> <span class="o">(</span><span class="n">day</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">case</span> <span class="no">MONDAY</span><span class="o">,</span> <span class="no">FRIDAY</span><span class="o">,</span> <span class="no">SUNDAY</span> <span class="o">-&gt;</span> <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="mi">6</span><span class="o">);</span>
+    <span class="k">case</span> <span class="no">TUESDAY</span>                <span class="o">-&gt;</span> <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="mi">7</span><span class="o">);</span>
+    <span class="k">case</span> <span class="no">THURSDAY</span><span class="o">,</span> <span class="no">SATURDAY</span>     <span class="o">-&gt;</span> <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="mi">8</span><span class="o">);</span>
+    <span class="k">case</span> <span class="no">WEDNESDAY</span>              <span class="o">-&gt;</span> <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="mi">9</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h4 id="instanceof-模式匹配">instanceof 模式匹配</h4>
+
+<p><code class="language-plaintext highlighter-rouge">instanceof</code> 主要在类型强转前探测对象的具体类型。</p>
+
+<p>之前的版本中，我们需要显示地对对象进行类型转换。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">Object</span> <span class="n">obj</span> <span class="o">=</span> <span class="s">"我是字符串"</span><span class="o">;</span>
+<span class="k">if</span><span class="o">(</span><span class="n">obj</span> <span class="k">instanceof</span> <span class="nc">String</span><span class="o">){</span>
+   <span class="nc">String</span> <span class="n">str</span> <span class="o">=</span> <span class="o">(</span><span class="nc">String</span><span class="o">)</span> <span class="n">obj</span><span class="o">;</span>
+  <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">str</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>新版的 <code class="language-plaintext highlighter-rouge">instanceof</code> 可以在判断是否属于具体的类型同时完成转换。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">Object</span> <span class="n">obj</span> <span class="o">=</span> <span class="s">"我是字符串"</span><span class="o">;</span>
+<span class="k">if</span><span class="o">(</span><span class="n">obj</span> <span class="k">instanceof</span> <span class="nc">String</span> <span class="n">str</span><span class="o">){</span>
+  <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">str</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h2 id="java13">Java13</h2>
+
+<h3 id="增强-zgc释放未使用内存">增强 ZGC(释放未使用内存)</h3>
+
+<p>在 Java 11 中实验性引入的 ZGC 在实际的使用中存在未能主动将未使用的内存释放给操作系统的问题。</p>
+
+<p>ZGC 堆由一组称为 ZPages 的堆区域组成。在 GC 周期中清空 ZPages 区域时，它们将被释放并返回到页面缓存 <strong>ZPageCache</strong> 中，此缓存中的 ZPages 按最近最少使用（LRU）的顺序，并按照大小进行组织。</p>
+
+<p>在 Java 13 中，ZGC 将向操作系统返回被标识为长时间未使用的页面，这样它们将可以被其他进程重用。</p>
+
+<h3 id="socketapi-重构">SocketAPI 重构</h3>
+
+<p>Java Socket API 终于迎来了重大更新！</p>
+
+<p>Java 13 将 Socket API 的底层进行了重写， <code class="language-plaintext highlighter-rouge">NioSocketImpl</code> 是对 <code class="language-plaintext highlighter-rouge">PlainSocketImpl</code> 的直接替代，它使用 <code class="language-plaintext highlighter-rouge">java.util.concurrent</code> 包下的锁而不是同步方法。如果要使用旧实现，请使用 <code class="language-plaintext highlighter-rouge">-Djdk.net.usePlainSocketImpl=true</code>。</p>
+
+<p>并且，在 Java 13 中是默认使用新的 Socket 实现。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">NioSocketImpl</span> <span class="kd">extends</span> <span class="nc">SocketImpl</span> <span class="kd">implements</span> <span class="nc">PlatformSocketImpl</span> <span class="o">{</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h3 id="filesystems">FileSystems</h3>
+
+<p><code class="language-plaintext highlighter-rouge">FileSystems</code> 类中添加了以下三种新方法，以便更容易地使用将文件内容视为文件系统的文件系统提供程序：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">newFileSystem(Path)</code></li>
+  <li><code class="language-plaintext highlighter-rouge">newFileSystem(Path, Map&lt;String, ?&gt;)</code></li>
+  <li><code class="language-plaintext highlighter-rouge">newFileSystem(Path, Map&lt;String, ?&gt;, ClassLoader)</code></li>
+</ul>
+
+<h3 id="动态-cds-存档">动态 CDS 存档</h3>
+
+<p>Java 13 中对 Java 10 中引入的应用程序类数据共享(AppCDS)进行了进一步的简化、改进和扩展，即：<strong>允许在 Java 应用程序执行结束时动态进行类归档</strong>，具体能够被归档的类包括所有已被加载，但不属于默认基层 CDS 的应用程序类和引用类库中的类。</p>
+
+<p>这提高了应用程序类数据共享（<a href="https://openjdk.java.net/jeps/310">AppCDS</a>）的可用性。无需用户进行试运行来为每个应用程序创建类列表。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>java <span class="nt">-XX</span>:ArchiveClassesAtExit<span class="o">=</span>my_app_cds.jsa <span class="nt">-cp</span> my_app.jar
+java <span class="nt">-XX</span>:SharedArchiveFile<span class="o">=</span>my_app_cds.jsa <span class="nt">-cp</span> my_app.jar
+</code></pre></div></div>
+
+<h3 id="预览新特性-1">预览新特性</h3>
+
+<h4 id="文本块">文本块</h4>
+
+<p>解决 Java 定义多行字符串时只能通过换行转义或者换行连接符来变通支持的问题，引入<strong>三重双引号</strong>来定义多行文本。</p>
+
+<p>Java 13 支持两个 <code class="language-plaintext highlighter-rouge">"""</code> 符号中间的任何内容都会被解释为字符串的一部分，包括换行符。</p>
+
+<p>未支持文本块之前的 HTML 写法：</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">String</span> <span class="n">json</span> <span class="o">=</span><span class="s">"{\n"</span> <span class="o">+</span>
+              <span class="s">"   \"name\":\"mkyong\",\n"</span> <span class="o">+</span>
+              <span class="s">"   \"age\":38\n"</span> <span class="o">+</span>
+              <span class="s">"}\n"</span><span class="o">;</span>
+</code></pre></div></div>
+
+<p>支持文本块之后的 HTML 写法：</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nc">String</span> <span class="n">json</span> <span class="o">=</span> <span class="sh">"""
+                {
+                    "name":"mkyong",
+                    "age":38
+                }
+                """</span><span class="o">;</span>
+</code></pre></div></div>
+
+<p>未支持文本块之前的 SQL 写法：</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">String</span> <span class="n">query</span> <span class="o">=</span> <span class="nv">"SELECT `EMP_ID`, `LAST_NAME` FROM `EMPLOYEE_TB`</span><span class="se">\n</span><span class="nv">"</span> <span class="o">+</span>
+               <span class="nv">"WHERE `CITY` = 'INDIANAPOLIS'</span><span class="se">\n</span><span class="nv">"</span> <span class="o">+</span>
+               <span class="nv">"ORDER BY `EMP_ID`, `LAST_NAME`;</span><span class="se">\n</span><span class="nv">"</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>支持文本块之后的 SQL 写法：</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">String</span> <span class="n">query</span> <span class="o">=</span> <span class="nv">"</span><span class="se">""</span><span class="nv">
+               SELECT `EMP_ID`, `LAST_NAME` FROM `EMPLOYEE_TB`
+               WHERE `CITY` = 'INDIANAPOLIS'
+               ORDER BY `EMP_ID`, `LAST_NAME`;
+               </span><span class="se">""</span><span class="nv">"</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>另外，<code class="language-plaintext highlighter-rouge">String</code> 类新增加了 3 个新的方法来操作文本块：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">formatted(Object... args)</code>：它类似于 <code class="language-plaintext highlighter-rouge">String</code> 的<code class="language-plaintext highlighter-rouge">format()</code>方法。添加它是为了支持文本块的格式设置。</li>
+  <li><code class="language-plaintext highlighter-rouge">stripIndent()</code>：用于去除文本块中每一行开头和结尾的空格。</li>
+  <li><code class="language-plaintext highlighter-rouge">translateEscapes()</code>：转义序列如 <em>“\\t”</em> 转换为 <em>“\t”</em></li>
+</ul>
+
+<p>由于文本块是一项预览功能，可以在未来版本中删除，因此这些新方法被标记为弃用。</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Deprecated</span><span class="o">(</span><span class="n">forRemoval</span><span class="o">=</span><span class="kc">true</span><span class="o">,</span> <span class="n">since</span><span class="o">=</span><span class="s">"13"</span><span class="o">)</span>
+<span class="kd">public</span> <span class="nc">String</span> <span class="nf">stripIndent</span><span class="o">()</span> <span class="o">{</span>
+<span class="o">}</span>
+<span class="nd">@Deprecated</span><span class="o">(</span><span class="n">forRemoval</span><span class="o">=</span><span class="kc">true</span><span class="o">,</span> <span class="n">since</span><span class="o">=</span><span class="s">"13"</span><span class="o">)</span>
+<span class="kd">public</span> <span class="nc">String</span> <span class="nf">formatted</span><span class="o">(</span><span class="nc">Object</span><span class="o">...</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+
+<span class="o">}</span>
+<span class="nd">@Deprecated</span><span class="o">(</span><span class="n">forRemoval</span><span class="o">=</span><span class="kc">true</span><span class="o">,</span> <span class="n">since</span><span class="o">=</span><span class="s">"13"</span><span class="o">)</span>
+<span class="kd">public</span> <span class="nc">String</span> <span class="nf">translateEscapes</span><span class="o">()</span> <span class="o">{</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h4 id="增强-switch引入-yield-关键字到-switch-中">增强 Switch(引入 yield 关键字到 Switch 中)</h4>
+
+<p><code class="language-plaintext highlighter-rouge">Switch</code> 表达式中就多了一个关键字用于跳出 <code class="language-plaintext highlighter-rouge">Switch</code> 块的关键字 <code class="language-plaintext highlighter-rouge">yield</code>，主要用于返回一个值</p>
+
+<p><code class="language-plaintext highlighter-rouge">yield</code>和 <code class="language-plaintext highlighter-rouge">return</code> 的区别在于：<code class="language-plaintext highlighter-rouge">return</code> 会直接跳出当前循环或者方法，而 <code class="language-plaintext highlighter-rouge">yield</code> 只会跳出当前 <code class="language-plaintext highlighter-rouge">Switch</code> 块，同时在使用 <code class="language-plaintext highlighter-rouge">yield</code> 时，需要有 <code class="language-plaintext highlighter-rouge">default</code> 条件</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="kd">private</span> <span class="kd">static</span> <span class="nc">String</span> <span class="nf">descLanguage</span><span class="o">(</span><span class="nc">String</span> <span class="n">name</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="nf">switch</span> <span class="o">(</span><span class="n">name</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">case</span> <span class="s">"Java"</span><span class="o">:</span> <span class="n">yield</span> <span class="s">"object-oriented, platform independent and secured"</span><span class="o">;</span>
+            <span class="k">case</span> <span class="s">"Ruby"</span><span class="o">:</span> <span class="n">yield</span> <span class="s">"a programmer's best friend"</span><span class="o">;</span>
+            <span class="k">default</span><span class="o">:</span> <span class="n">yield</span> <span class="n">name</span> <span class="o">+</span><span class="s">" is a good language"</span><span class="o">;</span>
+        <span class="o">};</span>
+ <span class="o">}</span>
+</code></pre></div></div>
+
+<h2 id="补充">补充</h2>
+
+<h3 id="关于预览特性">关于预览特性</h3>
+
+<p>先贴一段 oracle 官网原文：<code class="language-plaintext highlighter-rouge">This is a preview feature, which is a feature whose design, specification, and implementation are complete, but is not permanent, which means that the feature may exist in a different form or not at all in future JDK releases. To compile and run code that contains preview features, you must specify additional command-line options.</code></p>
+
+<p>这是一个预览功能，该功能的设计，规格和实现是完整的，但不是永久性的，这意味着该功能可能以其他形式存在或在将来的 JDK 版本中根本不存在。 要编译和运行包含预览功能的代码，必须指定其他命令行选项。</p>
+
+<p>就以<code class="language-plaintext highlighter-rouge">switch</code>的增强为例子，从 Java12 中推出，到 Java13 中将继续增强，直到 Java14 才正式转正进入 JDK 可以放心使用，不用考虑后续 JDK 版本对其的改动或修改</p>
+
+<p>一方面可以看出 JDK 作为标准平台在增加新特性的严谨态度，另一方面个人认为是对于预览特性应该采取审慎使用的态度。特性的设计和实现容易，但是其实际价值依然需要在使用中去验证</p>
+
+<h3 id="jvm-虚拟机优化">JVM 虚拟机优化</h3>
+
+<p>每次 Java 版本的发布都伴随着对 JVM 虚拟机的优化，包括对现有垃圾回收算法的改进，引入新的垃圾回收算法，移除老旧的不再适用于今天的垃圾回收算法等</p>
+
+<p>整体优化的方向是<strong>高效，低时延的垃圾回收表现</strong></p>
+
+<p>对于日常的应用开发者可能比较关注新的语法特性，但是从一个公司角度来说，在考虑是否升级 Java 平台时更加考虑的是<strong>JVM 运行时的提升</strong></p>
+
+<h2 id="参考">参考</h2>
+
+<ul>
+  <li>JDK Project Overview：<a href="https://openjdk.java.net/projects/jdk/">https://openjdk.java.net/projects/jdk/</a></li>
+  <li>Oracle Java12 ReleaseNote：<a href="https://www.oracle.com/java/technologies/javase/12all-relnotes.htm">https://www.oracle.com/java/technologies/javase/12all-relnotes.htm</a></li>
+  <li>What is new in Java 12：<a href="https://mkyong.com/java/what-is-new-in-java-12/">https://mkyong.com/java/what-is-new-in-java-12/</a></li>
+  <li>Oracle Java13 ReleaseNote <a href="https://www.oracle.com/technetwork/java/javase/13all-relnotes-5461743.html#NewFeature">https://www.oracle.com/technetwork/java/javase/13all-relnotes-5461743.html#NewFeature</a></li>
+  <li>New Java13 Features <a href="https://www.baeldung.com/java-13-new-features">https://www.baeldung.com/java-13-new-features</a></li>
+  <li>Java13 新特性概述 <a href="https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-13/index.html">https://www.ibm.com/developerworks/cn/java/the-new-features-of-Java-13/index.html</a></li>
+</ul>
+
+<!-- @include: @article-footer.snippet.md -->
